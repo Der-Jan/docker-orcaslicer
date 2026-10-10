@@ -67,6 +67,8 @@ RUN \
   mv squashfs-root /opt/orcaslicer && \
   localedef -i en_GB -f UTF-8 en_GB.UTF-8 && \
   chmod +x /opt/orcaslicer/libexec/orca-slicer-env && \
+  echo "**** configure orcaslicer window decorations ****" && \
+  sed -i '/<\/windowRules>/i\    <windowRule identifier="*orca*slicer*" type="normal" serverDecoration="no" />' /defaults/labwc.xml && \
   printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \
   echo "**** cleanup ****" && \
   apt-get autoclean && \
