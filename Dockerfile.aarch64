@@ -14,6 +14,14 @@ ENV TITLE=OrcaSlicer \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     PIXELFLUX_WAYLAND=true
 
+# build sources
+COPY tools/wayland-file-drop/build.sh \
+  tools/wayland-file-drop/drop.c \
+  tools/wayland-file-drop/layer-shell.xml \
+  tools/wayland-file-drop/virtual-pointer.xml \
+  tools/wayland-file-drop/watch-desktop.py \
+  tools/wayland-file-drop/xdg-shell.xml /build/wayland-file-drop/
+
 RUN \
   echo "**** add icon ****" && \
   curl -o \
@@ -30,8 +38,21 @@ RUN \
   printf \
     "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n" > \
     /etc/apt/preferences.d/mozilla && \
-  echo "**** install packages ****" && \
   apt-get update && \
+  echo "**** install build dependencies ****" && \
+  apt-get install --no-install-recommends -y \
+    libwayland-dev \
+    pkg-config && \
+  echo "**** build wayland file drop helper ****" && \
+  sh /build/wayland-file-drop/build.sh && \
+  install -Dm755 /build/wayland-file-drop/wayland-file-drop /usr/local/libexec/wayland-file-drop && \
+  install -m644 /build/wayland-file-drop/watch-desktop.py /usr/local/libexec/watch-desktop.py && \
+  rm -rf /build/wayland-file-drop && \
+  echo "**** remove build dependencies ****" && \
+  apt-get purge -y \
+    libwayland-dev \
+    pkg-config && \
+  echo "**** install packages ****" && \
   DEBIAN_FRONTEND=noninteractive \
   apt-get install --no-install-recommends -y \
     firefox \

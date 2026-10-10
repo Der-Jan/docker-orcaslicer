@@ -41,6 +41,12 @@ a timeout or cancelled drag does not prove that the application did not import.
 
 ## Automatically drop completed uploads
 
+Both Dockerfiles build and install the helper and watcher under
+`/usr/local/libexec`. The s6 service `svc-orcaslicer-desktop-drop` starts the watcher
+automatically after the app compositor is available, runs it as `abc`, and
+restarts it if it exits. No manual start is needed in a rebuilt image. The service
+is disabled in X11 mode. Watcher output appears in `docker logs`.
+
 `watch-desktop.py` watches `/config/Desktop` (or `FILE_MANAGER_PATH`) for the
 completed rename of a `.selkies-upload-*.part` file. It ignores files present at
 startup, partial uploads, ordinary saves and renames, hidden files, symlinks,
@@ -57,7 +63,8 @@ project-opening behavior and may show prompts. The synthetic drag briefly takes
 control of the pointer. Folder uploads and grouping several files into one drag
 are not implemented.
 
-Install the watcher alongside the helper, then start it for the current session:
+For development or an older image, install the watcher alongside the helper,
+then start it manually for the current session:
 
 ```bash
 docker cp tools/wayland-file-drop/watch-desktop.py \
@@ -68,7 +75,8 @@ docker exec -d --user abc \
   slicer-orca-1 sh -c 'exec python3 /config/tools/wayland-file-drop/watch-desktop.py >>/config/tools/wayland-file-drop/watcher.log 2>&1'
 ```
 
-The watcher must be started again after a container restart. Its lock prevents
+The manually started watcher must be started again after a container restart.
+The image's s6 service starts automatically. Its lock prevents
 two watchers for the same directory. Stop it gracefully using the recorded PID:
 
 ```bash

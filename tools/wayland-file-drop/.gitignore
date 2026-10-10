@@ -8,3 +8,4 @@ xdg-shell.h
 *.png
 *.log
 __pycache__/
+test-config/
