@@ -1,0 +1,10 @@
+wayland-file-drop
+layer-shell.c
+layer-shell.h
+virtual-pointer.c
+virtual-pointer.h
+xdg-shell.c
+xdg-shell.h
+*.png
+*.log
+__pycache__/
