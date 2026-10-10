@@ -1,0 +1,35 @@
+#!/opt/orcaslicer-mcp/bin/python3
+"""Use the Remote API credentials saved by the desktop application."""
+
+import json
+import os
+from pathlib import Path
+import sys
+
+
+def main():
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    try:
+        settings = json.loads((config_home / "OrcaSlicer/OrcaSlicer.conf").read_text())["app"]
+        if settings.get("remote_api_enabled") not in (True, "true"):
+            raise ValueError("Remote API is disabled")
+        token = settings.get("remote_api_token", "").strip()
+        if not token:
+            raise ValueError("Remote API token is missing")
+        port = int(settings.get("remote_api_port", 13130))
+        if not 1 <= port <= 65535:
+            raise ValueError("Remote API port is invalid")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        if "--check" not in sys.argv:
+            print("[orcaslicer-mcp] Enable Remote API in OrcaSlicer Preferences first.", file=sys.stderr)
+        return 1
+
+    if "--check" in sys.argv:
+        return 0
+    os.environ["ORCA_API_TOKEN"] = token
+    os.environ["ORCA_API_URL"] = f"http://127.0.0.1:{port}"
+    os.execv("/opt/orcaslicer-mcp/bin/orcaslicer-mcp", ["orcaslicer-mcp"])
+
+
+if __name__ == "__main__":
+    sys.exit(main())

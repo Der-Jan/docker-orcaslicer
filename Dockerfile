@@ -6,6 +6,8 @@ FROM ghcr.io/linuxserver/baseimage-selkies:debiantrixie
 ARG BUILD_DATE
 ARG VERSION
 ARG ORCASLICER_VERSION
+ARG ORCASLICER_MCP_VERSION
+ARG TUNNEL_CLIENT_VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="thelamer"
 
@@ -71,23 +73,43 @@ RUN \
     libgstreamer-plugins-bad1.0 \
     libmspack0 \
     libwebkit2gtk-4.1-0 \
-    libwx-perl && \
-  echo "**** install orcaslicer from appimage ****" && \
+    libwx-perl \
+    python3-venv \
+    unzip && \
+  echo "**** install MaxEllis orcaslicer from appimage ****" && \
   if [ -z ${ORCASLICER_VERSION+x} ]; then \
-    ORCASLICER_VERSION=$(curl -sX GET "https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest" \
-    | jq -r '.tag_name'); \
+    ORCASLICER_VERSION=$(curl -fsSL "https://api.github.com/repos/MaxEllis/OrcaSlicer/releases/latest" \
+    | jq -er '.tag_name'); \
   fi && \
-  RELEASE_URL=$(curl -sX GET "https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest"     | jq -r '.url') && \
-  DOWNLOAD_URL=$(curl -sX GET "${RELEASE_URL}" | jq -r 'first(.assets[].browser_download_url | select(test("Ubuntu2404_V")))') && \
+  curl -fsSL "https://api.github.com/repos/MaxEllis/OrcaSlicer/releases/tags/${ORCASLICER_VERSION}" -o /tmp/orca-release.json && \
+  DOWNLOAD_URL=$(jq -er 'first(.assets[].browser_download_url | select(endswith("-linux-x64.AppImage")))' /tmp/orca-release.json) && \
+  APPIMAGE_NAME=${DOWNLOAD_URL##*/} && \
   cd /tmp && \
-  curl -o \
-    /tmp/orca.app -L \
-    "${DOWNLOAD_URL}" && \
-  chmod +x /tmp/orca.app && \
-  ./orca.app --appimage-extract && \
+  curl -fsSL "${DOWNLOAD_URL}" -o "${APPIMAGE_NAME}" && \
+  curl -fsSL "https://github.com/MaxEllis/OrcaSlicer/releases/download/${ORCASLICER_VERSION}/SHA256SUMS.txt" -o /tmp/orca-sums.txt && \
+  awk -v name="${APPIMAGE_NAME}" '$2 == name' /tmp/orca-sums.txt > /tmp/orca-checksum.txt && \
+  test -s /tmp/orca-checksum.txt && \
+  sha256sum -c /tmp/orca-checksum.txt && \
+  chmod +x "${APPIMAGE_NAME}" && \
+  "./${APPIMAGE_NAME}" --appimage-extract && \
   mv squashfs-root /opt/orcaslicer && \
+  chmod -R a+rX /opt/orcaslicer && \
+  echo "**** install orcaslicer MCP server ****" && \
+  python3 -m venv /opt/orcaslicer-mcp && \
+  /opt/orcaslicer-mcp/bin/pip install --no-cache-dir "orcaslicer-mcp${ORCASLICER_MCP_VERSION:+==${ORCASLICER_MCP_VERSION}}" && \
+  echo "**** install OpenAI tunnel client ****" && \
+  if [ -z ${TUNNEL_CLIENT_VERSION+x} ]; then \
+    TUNNEL_CLIENT_VERSION=$(curl -fsSL "https://api.github.com/repos/openai/tunnel-client/releases/latest" | jq -er '.tag_name'); \
+  fi && \
+  TUNNEL_ARCHIVE="tunnel-client-${TUNNEL_CLIENT_VERSION}-linux-amd64.zip" && \
+  curl -fsSL "https://github.com/openai/tunnel-client/releases/download/${TUNNEL_CLIENT_VERSION}/${TUNNEL_ARCHIVE}" -o "${TUNNEL_ARCHIVE}" && \
+  curl -fsSL "https://github.com/openai/tunnel-client/releases/download/${TUNNEL_CLIENT_VERSION}/SHA256SUMS.txt" -o /tmp/tunnel-sums.txt && \
+  awk -v name="${TUNNEL_ARCHIVE}" '$2 == name' /tmp/tunnel-sums.txt > /tmp/tunnel-checksum.txt && \
+  test -s /tmp/tunnel-checksum.txt && \
+  sha256sum -c /tmp/tunnel-checksum.txt && \
+  unzip -q "${TUNNEL_ARCHIVE}" -d /opt/openai-tunnel && \
+  chmod +x /opt/openai-tunnel/tunnel-client /opt/openai-tunnel/cloudflared && \
   localedef -i en_GB -f UTF-8 en_GB.UTF-8 && \
-  chmod +x /opt/orcaslicer/libexec/orca-slicer-env && \
   echo "**** configure orcaslicer window decorations ****" && \
   sed -i '/<\/windowRules>/i\    <windowRule identifier="*orca*slicer*" type="normal" serverDecoration="no" />' /defaults/labwc.xml && \
   printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \

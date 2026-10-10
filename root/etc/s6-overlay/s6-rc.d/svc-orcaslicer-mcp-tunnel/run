@@ -1,0 +1,42 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+
+if [[ -z "${MCP_TUNNEL_ID:-}" ]]; then
+    echo "[orcaslicer-mcp-tunnel] Disabled: MCP_TUNNEL_ID is empty."
+    exec sleep infinity
+fi
+
+retry_error() {
+    echo "[orcaslicer-mcp-tunnel] $1" >&2
+    sleep 30
+    exit 1
+}
+
+[[ "${MCP_TUNNEL_ID}" =~ ^tunnel_[a-z0-9]{32}$ ]] ||
+    retry_error "Invalid tunnel ID; expected tunnel_ followed by 32 lowercase letters or digits."
+secret=/run/secrets/mcp_runtime_api_key
+[[ -r "${secret}" && -s "${secret}" ]] ||
+    retry_error "Mount a runtime API key at /run/secrets/mcp_runtime_api_key."
+
+# keep the host secret private while allowing the desktop user to read it
+install -d -m 0700 -o abc -g abc /run/orcaslicer-mcp || retry_error "Cannot create runtime directory."
+install -m 0600 -o abc -g abc "${secret}" /run/orcaslicer-mcp/runtime-api-key ||
+    retry_error "Cannot copy runtime API key."
+
+echo "[orcaslicer-mcp-tunnel] Waiting for Remote API to be enabled in OrcaSlicer Preferences."
+until s6-setuidgid abc /usr/local/libexec/orcaslicer-mcp --check; do
+    sleep 2
+done
+
+s6-setuidgid abc /opt/openai-tunnel/tunnel-client init --force \
+    --sample sample_mcp_stdio_local \
+    --profile orcaslicer --profile-dir /run/orcaslicer-mcp \
+    --tunnel-id "${MCP_TUNNEL_ID}" \
+    --mcp-command /usr/local/libexec/orcaslicer-mcp \
+    --control-plane-api-key-ref file:/run/orcaslicer-mcp/runtime-api-key ||
+    retry_error "Cannot initialize tunnel profile."
+
+echo "[orcaslicer-mcp-tunnel] Starting OpenAI tunnel with the OrcaSlicer MCP server."
+exec s6-setuidgid abc /opt/openai-tunnel/tunnel-client run \
+    --profile orcaslicer --profile-dir /run/orcaslicer-mcp \
+    --mcp.stdio-send-initialized-notification

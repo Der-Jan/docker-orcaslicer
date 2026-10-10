@@ -36,9 +36,28 @@ app_setup_block: |
 
   * https://yourhost:3001/
 
+  This private image installs the [MaxEllis OrcaSlicer fork](https://github.com/MaxEllis/OrcaSlicer/releases) and its separate MCP server. The optional OpenAI Secure MCP Tunnel starts automatically when configured; no additional inbound ports are needed.
+
   In Wayland mode, OrcaSlicer's main window has no desktop title bar or frame. Dialogs retain their normal window decorations.
 
   Completed browser uploads of STL, OBJ, STEP/STP, and 3MF files are automatically dropped at the screen center by a supervised service that starts with the container. Keep OrcaSlicer maximized on **Prepare**, with its canvas covering that point. The upload directory is `FILE_MANAGER_PATH`, default `/config/Desktop`. Existing files, partial uploads, ordinary saves, and `.gcode.3mf` files are ignored; failed drops are not retried automatically. Files remain in the upload directory. This feature requires a single Wayland output and is disabled in X11 mode. A 3MF follows OrcaSlicer's normal project-opening behavior and may show prompts. See `tools/wayland-file-drop/README.md` for details.
+
+  Complete OrcaSlicer's setup wizard, then enable **Preferences > Remote API > Enable Remote API**. Keep **Allow LAN access** disabled. The MCP launcher reads the saved token and port from `/config/.config/OrcaSlicer/OrcaSlicer.conf`; it does not change your settings. If you regenerate the token, restart the container.
+
+  Create a tunnel and runtime API key in [OpenAI Platform tunnel settings](https://platform.openai.com/settings/organization/tunnels), and associate the tunnel with your ChatGPT workspace. Set `MCP_TUNNEL_ID` to that tunnel's ID and mount a file containing the runtime API key read-only at `/run/secrets/mcp_runtime_api_key`. Keep the key out of the Dockerfile and build arguments. With no tunnel ID, the tunnel service stays disabled.
+
+  For example, add these settings to your existing Compose service:
+
+  ```yaml
+  environment:
+    MCP_TUNNEL_ID: tunnel_0123456789abcdef0123456789abcdef
+  volumes:
+    - /path/to/runtime-api-key:/run/secrets/mcp_runtime_api_key:ro
+  ```
+
+  Recreate the container and check its logs for `[orcaslicer-mcp-tunnel] Starting OpenAI tunnel`. In ChatGPT, add a custom MCP server, choose **Tunnel**, and select this tunnel. The local MCP server needs no separate authentication; the tunnel uses your OpenAI organization/workspace access, while OrcaSlicer's Remote API remains token-authenticated on loopback. See [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) for account permissions and connection instructions.
+
+  Build arguments `ORCASLICER_VERSION` (a fork release tag), `ORCASLICER_MCP_VERSION` (a Python package version), and `TUNNEL_CLIENT_VERSION` (a tunnel-client release tag) can select specific versions. Unset arguments use the latest release/package available at build time. Both application and tunnel downloads are checked against their release SHA-256 manifests.
 # init diagram
 init_diagram: |
   "orcaslicer:latest": {
@@ -78,6 +97,8 @@ init_diagram: |
     init-services -> svc-cron
     svc-cron -> legacy-services
     init-services -> svc-dbus
+    init-services -> svc-orcaslicer-mcp-tunnel
+    svc-orcaslicer-mcp-tunnel -> legacy-services
     init-services -> svc-orcaslicer-desktop-drop
     svc-orcaslicer-desktop-drop -> legacy-services
     svc-xorg -> svc-dbus
@@ -116,6 +137,7 @@ init_diagram: |
 changelogs:
   - {date: "10.10.26:", desc: "Start the Wayland desktop upload watcher automatically with the container."}
   - {date: "09.10.26:", desc: "Remove the desktop frame from OrcaSlicer's main window in Wayland mode."}
+  - {date: "09.10.26:", desc: "Use the MaxEllis OrcaSlicer fork and add an optional OpenAI MCP tunnel."}
   - {date: "20.06.26:", desc: "Add aarch64 platform."}
   - {date: "11.05.26:", desc: "Rebase to Debian Trixie."}
   - {date: "19.04.26:", desc: "Rebase to resolute."}
