@@ -2,7 +2,7 @@
 
 # jenkins variables
 project_name: docker-orcaslicer
-external_type: github_stable
+external_type: custom_json
 release_type: stable
 release_tag: latest
 ls_branch: master
@@ -14,6 +14,8 @@ external_artifact_check: |
     artifacts_found="false"
   fi
 repo_vars:
+  - JSON_URL = 'https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/tags/nightly-builds'
+  - JSON_PATH = 'tag_name'
   - EXT_USER = 'OrcaSlicer'
   - EXT_REPO = 'OrcaSlicer'
   - BUILD_VERSION_ARG = 'ORCASLICER_VERSION'
