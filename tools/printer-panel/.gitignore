@@ -1,0 +1,4 @@
+.test-tools/
+*.log
+preview-*.png
+deployment/

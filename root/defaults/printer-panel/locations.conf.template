@@ -1,0 +1,56 @@
+
+location = {prefix}printer-panel {{ return 302 {prefix}printer-panel/; }}
+location = {prefix}printer-panel/printer.json {{
+    alias /run/orcaslicer-panel/printer.json;
+    default_type application/json;
+    add_header Cache-Control "no-store" always;
+}}
+location = {prefix}printer-panel/device/config.json {{
+    set $printer_panel_scheme $scheme;
+    if ($http_x_forwarded_proto = "https") {{ set $printer_panel_scheme https; }}
+    default_type application/json;
+    add_header Cache-Control "no-store" always;
+    return 200 '{{"endpoints":["$printer_panel_scheme://$http_host{prefix}printer-panel/moonraker"],"blacklist":["$host"]}}';
+}}
+location {prefix}printer-panel/device/ {{
+    proxy_pass {web}/;
+    proxy_set_header Host {host};
+    proxy_set_header Accept-Encoding "";
+    proxy_redirect {web}/ {prefix}printer-panel/device/;
+}}
+location {prefix}printer-panel/moonraker/ {{
+    access_log off;
+    proxy_pass http://{host}:7125/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host {host}:7125;
+    proxy_set_header Origin http://{host};
+    # Authentication belongs to the selected Orca profile, not the browser proxy.
+    {authentication}
+    proxy_set_header X-Forwarded-For "";
+    proxy_set_header X-Real-IP "";
+    proxy_set_header Forwarded "";
+    proxy_set_header Accept-Encoding "";
+    sub_filter_types application/json;
+    sub_filter_once off;
+    sub_filter '"/webcam/' '"{prefix}printer-panel/camera/';
+    proxy_read_timeout 3600s;
+    proxy_buffering off;
+    proxy_request_buffering off;
+    client_max_body_size 0;
+}}
+location {prefix}printer-panel/camera/ {{
+    proxy_pass {web}/webcam/;
+    proxy_set_header Host {host};
+    proxy_buffering off;
+    proxy_read_timeout 60s;
+}}
+# Fluidd also receives camera URLs in WebSocket messages, which cannot be
+# rewritten by the HTTP JSON filter. Keep its current root camera path working.
+location /webcam/ {{
+    proxy_pass {web}/webcam/;
+    proxy_set_header Host {host};
+    proxy_buffering off;
+    proxy_read_timeout 60s;
+}}

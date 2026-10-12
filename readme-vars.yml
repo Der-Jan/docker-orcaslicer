@@ -42,6 +42,8 @@ app_setup_block: |
 
   `ORCASLICER_VERSION` defaults to the upstream `nightly-builds` release. `SUPPORT_FINS_VERSION` can select a plugin commit or tag; unset, the build records the current `main` commit in `/defaults/support-fins/VERSION`. Rebuild the image to fetch newer nightly/plugin code. Newly bundled plugin versions do not overwrite your existing plugin directory; use OrcaSlicer's local plugin installer with `/defaults/support-fins/support_fins_orca.py` to update an existing installation.
 
+  The browser desktop includes a collapsible **Device** panel on the right. Its live Fluidd page, Moonraker WebSocket and webcam are proxied through the container and share the existing browser entrypoint and its authentication. The panel can overlay the desktop or be pinned beside it; its width and pin preference are saved in the browser. The selected machine's `printhost_apikey` is injected into proxied Moonraker HTTP and WebSocket requests inside the container; it is not included in browser configuration or metadata. Browser forwarding headers are removed from Moonraker requests. The selected machine's `print_host` is read from OrcaSlicer's saved configuration every two seconds. Selection changes close the previous printer connection and load the new page. This integration currently targets QIDI/Fluidd printers with Moonraker on port 7125 and a `/webcam/` camera endpoint. Orca must have saved the selection and its printer address; missing or ambiguous profiles show a status message. The printer itself needs no HTTPS or browser-accessible network address. When using a subfolder-only reverse proxy, also forward `/webcam/` for Fluidd camera URLs received over WebSocket. The original Selkies page remains accessible at `desktop.html` for troubleshooting.
+
   In Wayland mode, OrcaSlicer's main window has no desktop title bar or frame. Dialogs retain their normal window decorations.
 
   Completed browser uploads of STL, OBJ, STEP/STP, and 3MF files are automatically dropped at the screen center by a supervised service that starts with the container. Keep OrcaSlicer maximized on **Prepare**, with its canvas covering that point. The upload directory is `FILE_MANAGER_PATH`, default `/config/Desktop`. Existing files, partial uploads, ordinary saves, and `.gcode.3mf` files are ignored; failed drops are not retried automatically. Files remain in the upload directory. This feature requires a single Wayland output and is disabled in X11 mode. A 3MF follows OrcaSlicer's normal project-opening behavior and may show prompts. See `tools/wayland-file-drop/README.md` for details.
@@ -122,6 +124,9 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "12.10.26:", desc: "Match the printer panel label and icon to OrcaSlicer Device."}
+  - {date: "12.10.26:", desc: "Use the selected Orca printer API key for panel HTTP and WebSocket authentication."}
+  - {date: "11.10.26:", desc: "Add a right-side printer panel with a container proxy and saved printer selection tracking."}
   - {date: "10.10.26:", desc: "Use OrcaSlicer 2.5 nightly and include the Support Fins plugin."}
   - {date: "10.10.26:", desc: "Start the Wayland desktop upload watcher automatically with the container."}
   - {date: "09.10.26:", desc: "Remove the desktop frame from OrcaSlicer's main window in Wayland mode."}

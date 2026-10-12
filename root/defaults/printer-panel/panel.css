@@ -1,0 +1,45 @@
+:root { color-scheme: dark; --panel-width: 620px; --teal: #19c5ae; font-family: system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; overflow: hidden; background: #22292b; color: #eef3f3; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible, #resize-handle:focus-visible { outline: 2px solid var(--teal); outline-offset: -3px; }
+#workspace { position: absolute; inset: 0; transition: right .22s ease; background: #22292b; }
+.slicer-image { width: 100%; height: 100%; object-fit: contain; }
+.preview-note { position: absolute; bottom: 17px; left: 20px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; border: 1px solid #566265; border-radius: 18px; background: #22292beb; box-shadow: 0 2px 10px #0003; }
+.preview-dot { width: 6px; height: 6px; background: #ddc782; border-radius: 50%; }
+.edge-tab { position: absolute; top: 45%; right: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 11px; width: 39px; padding: 15px 7px; color: #dcf3ed; background: #263b3c; border: 1px solid #467471; border-right: 0; border-radius: 12px 0 0 12px; box-shadow: -4px 4px 20px #0003; transition: right .22s ease, background .15s; }
+.edge-tab:hover { background: #31504d; }
+.edge-tab span:first-of-type { writing-mode: vertical-rl; font-size: 12px; letter-spacing: .05em; }
+.icon-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#tab-arrow { font-size: 23px; line-height: 14px; color: var(--teal); }
+#printer-panel { position: absolute; inset: 0 0 0 auto; width: var(--panel-width); max-width: calc(100vw - 44px); z-index: 3; background: #1e2428; border-left: 1px solid #405052; box-shadow: -12px 0 40px #0005; }
+#printer-panel:not([hidden]) { display: flex; flex-direction: column; }
+body.panel-open .edge-tab { right: min(var(--panel-width), calc(100vw - 44px)); }
+body.panel-open.pinned #workspace { right: min(var(--panel-width), calc(100vw - 44px)); }
+.panel-header { flex: 0 0 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #3b454a; background: #252e32; gap: 10px; }
+.printer-identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.identity-mark { display: grid; place-items: center; width: 32px; height: 34px; flex: 0 0 32px; border-radius: 8px; background: #163e38; color: #6de3c5; font-size: 18px; font-weight: 650; }
+.printer-identity strong { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+.printer-identity small { display: block; margin-top: 4px; font-size: 11px; color: #a8b8bd; }
+.panel-actions { display: flex; gap: 4px; }
+.icon-button { display: grid; place-items: center; width: 32px; height: 32px; color: #b9c8ca; border: 0; border-radius: 6px; background: transparent; }
+.icon-button:hover { background: #ffffff0f; color: #fff; }
+.icon-button[aria-pressed="true"] { background: #164b43; color: #69e8cc; }
+.frame-container { flex: 1; min-height: 0; background: #161a1e; }
+iframe { display: block; width: 100%; height: 100%; border: 0; }
+footer { display: flex; justify-content: space-between; flex: 0 0 36px; align-items: center; padding: 0 16px; font-size: 11px; color: #a8b8bd; border-top: 1px solid #3b454a; }
+footer a { color: #b4d8d1; text-decoration: none; }
+footer a:hover { color: var(--teal); }
+#resize-handle { position: absolute; left: -5px; top: 0; bottom: 0; width: 9px; z-index: 5; cursor: col-resize; }
+#resize-handle:hover, #resize-handle:focus-visible { background: #19c5ae55; }
+body.resizing, body.resizing * { cursor: col-resize !important; user-select: none; }
+body.resizing iframe { pointer-events: none; }
+body.resizing #workspace, body.resizing .edge-tab { transition: none; }
+@media (max-width: 600px) { .printer-identity small { font-size: 10px; } .panel-header { padding: 0 10px; } .identity-mark { display: none; } .preview-note { left: 12px; bottom: 12px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+#printer-status { padding: 24px; line-height: 1.6; }
+#printer-status:not([hidden]) + iframe { display: none; }
+
+.device-icon { width: 20px; height: 20px; }
