@@ -74,7 +74,7 @@ Support Fins is installed into `/config/.config/OrcaSlicer/orca_plugins/SupportF
 
 #### Device panel
 
-Open **Device** on the right edge of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser.
+Open **Device** on the right edge of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser. The camera button opens a camera-only view inside the panel. **Zur Device-Ansicht**, clicking the camera button again, or Escape restores the normal view.
 
 The panel follows the selected machine's saved `print_host` and `printhost_apikey` in OrcaSlicer, checking every two seconds. Save the printer address and API key in Orca's printer connection settings. The container injects the key into Moonraker HTTP and WebSocket requests; it is not included in browser configuration or metadata. Browser forwarding headers are removed from Moonraker requests. Changes to the saved profile or key close the previous connection and reload the panel. Missing or ambiguous profiles show a status message.
 
@@ -385,6 +385,7 @@ Once registered you can define the dockerfile to use with `-f Dockerfile.aarch64
 
 ## Versions
 
+* **12.10.26:** - Show the camera inside the Device panel with a return button.
 * **12.10.26:** - Keep camera fullscreen on the camera instead of navigating to the desktop.
 * **12.10.26:** - Match the printer panel label and icon to OrcaSlicer Device.
 * **12.10.26:** - Use the selected Orca printer API key for panel HTTP and WebSocket authentication.

@@ -4,37 +4,63 @@ const toggle = document.getElementById('printer-toggle');
 let frame = document.getElementById('printer-frame');
 const resize = document.getElementById('resize-handle');
 
-function bindDeviceFullscreen(deviceFrame) {
+const cameraViews = new WeakMap();
+function bindDeviceCamera(deviceFrame) {
   let deviceDocument;
   try { deviceDocument = deviceFrame.contentDocument; } catch { return; }
-  if (!deviceDocument || deviceDocument.documentElement.dataset.orcaFullscreenBound) return;
-  deviceDocument.documentElement.dataset.orcaFullscreenBound = 'true';
+  if (!deviceDocument || deviceDocument.documentElement.dataset.orcaCameraBound) return;
+  deviceDocument.documentElement.dataset.orcaCameraBound = 'true';
   const cameraStyle = deviceDocument.createElement('style');
-  cameraStyle.textContent = '.camera-container:fullscreen .camera-image { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }';
+  cameraStyle.textContent = `
+    html.orca-camera-view-open, html.orca-camera-view-open body { overflow: hidden !important; }
+    .camera-container.orca-camera-view { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; max-height: none !important; z-index: 2147483647; background: #000 !important; }
+    .orca-camera-view .camera-image { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }
+    .orca-camera-return { position: absolute; top: 10px; left: 10px; z-index: 2; padding: 8px 12px; border: 1px solid #637476; border-radius: 6px; background: #252e32; color: #eef3f3; font: 13px system-ui, sans-serif; cursor: pointer; }
+    .orca-camera-return:focus-visible { outline: 2px solid #19c5ae; }
+  `;
   deviceDocument.head.append(cameraStyle);
+  let activeCamera = null;
+  let returnButton = null;
+  let previousFocus = null;
+  function closeCameraView() {
+    if (!activeCamera) return false;
+    activeCamera.classList.remove('orca-camera-view');
+    deviceDocument.documentElement.classList.remove('orca-camera-view-open');
+    returnButton.remove();
+    activeCamera = null;
+    previousFocus?.focus();
+    return true;
+  }
+  cameraViews.set(deviceFrame, closeCameraView);
   deviceDocument.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && deviceDocument.fullscreenElement?.matches('.camera-container')) {
+    if (event.key === 'Escape' && activeCamera) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      deviceDocument.exitFullscreen().catch(() => {});
+      closeCameraView();
     }
   }, true);
   deviceDocument.addEventListener('click', event => {
-    const control = event.target instanceof deviceFrame.contentWindow.Element
-      ? event.target.closest('.camera-fullscreen') : null;
+    const control = event.target.closest?.('.camera-fullscreen, .orca-camera-return');
     const camera = control?.closest('.camera-container');
-    if (!camera || !camera.requestFullscreen) return;
-    // QIDI's camera button navigates to the site root, which hosts our desktop.
-    // Handle the embedded camera locally with the browser Fullscreen API.
+    if (!camera) return;
+    // Keep QIDI's site-root navigation inside our embedded camera view.
     event.preventDefault();
     event.stopImmediatePropagation();
-    const action = deviceDocument.fullscreenElement === camera
-      ? deviceDocument.exitFullscreen() : camera.requestFullscreen();
-    action.catch(() => { control.title = 'Kamera-Vollbild ist im Browser nicht verfügbar.'; });
+    if (closeCameraView()) return;
+    previousFocus = deviceDocument.activeElement;
+    activeCamera = camera;
+    camera.classList.add('orca-camera-view');
+    deviceDocument.documentElement.classList.add('orca-camera-view-open');
+    returnButton = deviceDocument.createElement('button');
+    returnButton.type = 'button';
+    returnButton.className = 'orca-camera-return';
+    returnButton.textContent = 'Zur Device-Ansicht';
+    camera.append(returnButton);
+    returnButton.focus({preventScroll: true});
   }, true);
 }
 function watchDeviceFrame(deviceFrame) {
-  deviceFrame.addEventListener('load', () => bindDeviceFullscreen(deviceFrame));
+  deviceFrame.addEventListener('load', () => bindDeviceCamera(deviceFrame));
 }
 watchDeviceFrame(frame);
 let width = 620;
@@ -67,8 +93,7 @@ document.getElementById('pin').addEventListener('click', () => { pinned = !pinne
 document.getElementById('expand').addEventListener('click', () => { setWidth(width > window.innerWidth * .6 ? 620 : window.innerWidth * .8); save(); });
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
-  if (document.fullscreenElement === frame) frame.contentDocument.exitFullscreen().catch(() => {});
-  else if (!panel.hidden) openPanel(false);
+  if (!cameraViews.get(frame)?.() && !panel.hidden) openPanel(false);
 });
 resize.addEventListener('pointerdown', event => {
   if (event.button !== 0) return;
