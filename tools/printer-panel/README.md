@@ -5,6 +5,12 @@ collapsible **Device** panel with Fluidd on the right. Its icon is OrcaSlicer's
 `resources/images/tab_monitor_active.svg`, embedded unchanged in the wrapper. Pin it beside the desktop or drag its
 left edge to resize it. Width and pin preference are stored in the browser.
 
+The embedded QIDI camera's fullscreen button uses the browser Fullscreen API on
+its camera container. It fills the viewport with the camera image, preserving
+its aspect ratio; clicking the button again or pressing Escape restores the
+panel. This avoids QIDI's site-root navigation opening the Selkies desktop
+inside the printer frame. The handler is attached again after profile changes.
+
 Runtime assets live in `root/defaults/printer-panel/`; the saved-profile watcher
 is `root/usr/local/libexec/orcaslicer-panel.py`. The `init-orcaslicer-panel`
 oneshot runs after the base image has generated nginx and copied the Selkies

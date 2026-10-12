@@ -385,6 +385,7 @@ Once registered you can define the dockerfile to use with `-f Dockerfile.aarch64
 
 ## Versions
 
+* **12.10.26:** - Keep camera fullscreen on the camera instead of navigating to the desktop.
 * **12.10.26:** - Match the printer panel label and icon to OrcaSlicer Device.
 * **12.10.26:** - Use the selected Orca printer API key for panel HTTP and WebSocket authentication.
 * **11.10.26:** - Add a right-side printer panel with a container proxy and saved printer selection tracking.

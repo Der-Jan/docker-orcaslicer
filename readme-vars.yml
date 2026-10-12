@@ -140,6 +140,7 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "12.10.26:", desc: "Keep camera fullscreen on the camera instead of navigating to the desktop."}
   - {date: "12.10.26:", desc: "Match the printer panel label and icon to OrcaSlicer Device."}
   - {date: "12.10.26:", desc: "Use the selected Orca printer API key for panel HTTP and WebSocket authentication."}
   - {date: "11.10.26:", desc: "Add a right-side printer panel with a container proxy and saved printer selection tracking."}

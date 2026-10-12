@@ -43,3 +43,5 @@ body.resizing #workspace, body.resizing .edge-tab { transition: none; }
 #printer-status:not([hidden]) + iframe { display: none; }
 
 .device-icon { width: 20px; height: 20px; }
+
+#printer-frame:fullscreen { position: fixed; inset: 0; width: 100vw; height: 100vh; max-width: none; max-height: none; }

@@ -3,6 +3,40 @@ const panel = document.getElementById('printer-panel');
 const toggle = document.getElementById('printer-toggle');
 let frame = document.getElementById('printer-frame');
 const resize = document.getElementById('resize-handle');
+
+function bindDeviceFullscreen(deviceFrame) {
+  let deviceDocument;
+  try { deviceDocument = deviceFrame.contentDocument; } catch { return; }
+  if (!deviceDocument || deviceDocument.documentElement.dataset.orcaFullscreenBound) return;
+  deviceDocument.documentElement.dataset.orcaFullscreenBound = 'true';
+  const cameraStyle = deviceDocument.createElement('style');
+  cameraStyle.textContent = '.camera-container:fullscreen .camera-image { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }';
+  deviceDocument.head.append(cameraStyle);
+  deviceDocument.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && deviceDocument.fullscreenElement?.matches('.camera-container')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      deviceDocument.exitFullscreen().catch(() => {});
+    }
+  }, true);
+  deviceDocument.addEventListener('click', event => {
+    const control = event.target instanceof deviceFrame.contentWindow.Element
+      ? event.target.closest('.camera-fullscreen') : null;
+    const camera = control?.closest('.camera-container');
+    if (!camera || !camera.requestFullscreen) return;
+    // QIDI's camera button navigates to the site root, which hosts our desktop.
+    // Handle the embedded camera locally with the browser Fullscreen API.
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const action = deviceDocument.fullscreenElement === camera
+      ? deviceDocument.exitFullscreen() : camera.requestFullscreen();
+    action.catch(() => { control.title = 'Kamera-Vollbild ist im Browser nicht verfügbar.'; });
+  }, true);
+}
+function watchDeviceFrame(deviceFrame) {
+  deviceFrame.addEventListener('load', () => bindDeviceFullscreen(deviceFrame));
+}
+watchDeviceFrame(frame);
 let width = 620;
 let pinned = false;
 try { width = Number(localStorage.getItem('orca-panel-width')) || 620; pinned = localStorage.getItem('orca-panel-pinned') === 'true'; } catch {}
@@ -31,7 +65,11 @@ toggle.addEventListener('click', () => openPanel(panel.hidden));
 document.getElementById('close').addEventListener('click', () => openPanel(false));
 document.getElementById('pin').addEventListener('click', () => { pinned = !pinned; updatePin(); save(); });
 document.getElementById('expand').addEventListener('click', () => { setWidth(width > window.innerWidth * .6 ? 620 : window.innerWidth * .8); save(); });
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) openPanel(false); });
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (document.fullscreenElement === frame) frame.contentDocument.exitFullscreen().catch(() => {});
+  else if (!panel.hidden) openPanel(false);
+});
 resize.addEventListener('pointerdown', event => {
   if (event.button !== 0) return;
   event.preventDefault(); resize.setPointerCapture(event.pointerId); document.body.classList.add('resizing');
@@ -60,6 +98,7 @@ async function updatePrinter() {
     if (printerRevision !== printer.revision) {
       // Destroy the old iframe so its sockets and camera streams are disconnected.
       const replacement = frame.cloneNode(false);
+      watchDeviceFrame(replacement);
       replacement.src = printer.ready && !panel.hidden ? 'device/' : 'about:blank';
       frame.replaceWith(replacement);
       frame = replacement;
