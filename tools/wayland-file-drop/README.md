@@ -41,6 +41,49 @@ a timeout or cancelled drag does not prove that the application did not import.
 
 ## Automatically drop completed uploads
 
+The container's watcher now routes uploads through
+`/usr/local/libexec/orcaslicer-project-drop.py`. The bundled **Project storage**
+Python plugin reports the actual open project and exports its settings on request.
+It is installed and enabled by `init-orcaslicer-plugins`; its status panel hides
+after initialization. Run the capability in Orca's Plugins dialog to show it.
+The plugin requires a nightly containing `project_path()` and `export_3mf_copy()`.
+
+For a first model in an empty, unnamed editor, the helper creates
+`/config/Projects/<model-stem>/<project-name>.3mf` with Orca's headless CLI,
+copies the uploaded original into `Sources/`, and opens the complete project.
+Printer, process and filament settings and profile differences are retained from
+Orca's native snapshot; the CLI uses the selected printer's geometry for arranging.
+The project's Description records the original source filename. The model is
+already contained in the 3MF and is not imported a second time.
+
+Later model uploads go into `Sources/` alongside the open project's 3MF. They do
+not rename that project or automatically save its changes. Existing project
+folders and source files receive `-2`, `-3`, etc. suffixes rather than being
+overwritten. A dropped 3MF is copied to a new project folder unchanged.
+The Desktop original remains available even when preparation/opening fails.
+An unnamed editor with existing objects must be saved first.
+
+Keep the main window on **Prepare**. Use **Load All**, or choose **Open as project**
+in Orca's normal load dialog. Changed-profile/save/discard prompts are never
+confirmed by the helper. Further uploads wait for the actual project path/import
+to be confirmed. After cancelling, manually open the prepared 3MF or run the
+plugin and choose **Cancel pending import** to release the queue without deleting
+anything. Missing, stale or ambiguous plugin sessions fail closed: the Desktop
+files are retained. Exactly one editor and one Wayland output are supported.
+Runtime messages and CLI staging stay in a private directory under
+`/run/orcaslicer-project-storage`; persistent projects stay under `/config`.
+
+This prepares local project folders. Nextcloud synchronization and archiving the
+G-code actually sent to a printer require separate integrations. Synchronize
+`/config/Projects` for automatically created projects; projects opened from other
+directories keep their existing path and place sources beside that file.
+
+Run the association/preservation checks with:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 tools/wayland-file-drop/test-project-storage.py
+```
+
 Both Dockerfiles build and install the helper and watcher under
 `/usr/local/libexec`. The s6 service `svc-orcaslicer-desktop-drop` starts the watcher
 automatically after the app compositor is available, runs it as `abc`, and

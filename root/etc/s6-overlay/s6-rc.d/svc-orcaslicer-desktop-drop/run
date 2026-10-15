@@ -18,4 +18,5 @@ while [[ ! -S "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" ]]; do
 done
 
 exec s6-setuidgid abc /usr/bin/python3 /usr/local/libexec/watch-desktop.py \
-    --directory "${directory}" --helper /usr/local/libexec/wayland-file-drop
+    --directory "${directory}" --helper /usr/local/libexec/wayland-file-drop \
+    --project-helper /usr/local/libexec/orcaslicer-project-drop.py

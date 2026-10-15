@@ -43,3 +43,33 @@ body.resizing #workspace, body.resizing .edge-tab { transition: none; }
 #printer-status:not([hidden]) + iframe { display: none; }
 
 .device-icon { width: 20px; height: 20px; }
+
+#nextcloud-toggle { top: 70%; }
+#nextcloud-led { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #f07171; box-shadow: 0 0 5px #f0717170; }
+#nextcloud-toggle:is([data-status="ready"], [data-status="syncing"]) #nextcloud-led { background: #59d98b; box-shadow: 0 0 5px #59d98b70; }
+#nextcloud-toggle[data-status="syncing"] #nextcloud-led { animation: nextcloud-blink 1.2s ease-in-out infinite; }
+@keyframes nextcloud-blink { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { #nextcloud-led { animation: none !important; } }
+#nextcloud-panel { position: absolute; inset: 0 0 0 auto; width: 460px; max-width: calc(100vw - 44px); z-index: 6; background: #1e2428; border-left: 1px solid #405052; box-shadow: -12px 0 40px #0005; overflow-y: auto; }
+body.nextcloud-open .edge-tab { right: min(460px, calc(100vw - 44px)); }
+.nextcloud-content { padding: 24px; line-height: 1.6; }
+.nextcloud-content form { display: flex; flex-direction: column; gap: 12px; }
+.nextcloud-content input { width: 100%; padding: 10px; border: 1px solid #637476; border-radius: 6px; background: #161a1e; color: #eef3f3; font: inherit; }
+.nextcloud-content button { padding: 10px 14px; border: 1px solid #467471; border-radius: 6px; background: #263b3c; color: #dcf3ed; }
+.nextcloud-content button:disabled { opacity: .5; cursor: default; }
+.nextcloud-content a { color: var(--teal); }
+.nextcloud-note { color: #a8b8bd; font-size: 12px; }
+#nextcloud-folder-picker { margin-top: 24px; border-top: 1px solid #405052; }
+.nextcloud-folder-path { display: flex; align-items: center; gap: 12px; overflow-wrap: anywhere; }
+#nextcloud-folders { list-style: none; padding: 0; max-height: 35vh; overflow: auto; }
+#nextcloud-folders button { width: 100%; margin-bottom: 6px; text-align: left; overflow-wrap: anywhere; }
+#nextcloud-selected-folder { overflow-wrap: anywhere; color: var(--teal); }
+#nextcloud-sync-activity { display: flex; align-items: center; gap: 9px; margin-top: 16px; }
+#nextcloud-sync-indicator { width: 12px; height: 12px; border: 2px solid #829194; border-radius: 50%; }
+#nextcloud-sync-activity[data-phase="idle"] #nextcloud-sync-indicator { background: var(--teal); border-color: var(--teal); }
+#nextcloud-sync-activity[data-phase="error"] #nextcloud-sync-indicator { background: #ed8a8a; border-color: #ed8a8a; }
+#nextcloud-sync-activity[data-phase="waiting"] #nextcloud-sync-indicator { background: #ddc782; border-color: #ddc782; }
+#nextcloud-sync-activity:is([data-phase="requested"], [data-phase="checking"], [data-phase="preparing"], [data-phase="transferring"], [data-phase="stopping"]) #nextcloud-sync-indicator { border-color: #467471; border-top-color: var(--teal); animation: sync-spin 1s linear infinite; }
+#nextcloud-sync-progress { width: 100%; accent-color: var(--teal); }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #nextcloud-sync-indicator { animation: none !important; } }

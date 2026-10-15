@@ -50,7 +50,9 @@ app_setup_block: |
 
   #### Device panel
 
-  Open **Device** on the right edge of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser. The camera button opens a camera-only view inside the panel. **Zur Device-Ansicht**, clicking the camera button again, or Escape restores the normal view.
+  All custom interface text is in English. Follow the [UI requirements](tools/UI-GUIDELINES.md) for future changes.
+
+  Open **Device** on the right edge of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser. The camera button opens a camera-only view inside the panel. **Back to Device**, clicking the camera button again, or Escape restores the normal view.
 
   The panel follows the selected machine's saved `print_host` and `printhost_apikey` in OrcaSlicer, checking every two seconds. Save the printer address and API key in Orca's printer connection settings. The container injects the key into Moonraker HTTP and WebSocket requests; it is not included in browser configuration or metadata. Browser forwarding headers are removed from Moonraker requests. Changes to the saved profile or key close the previous connection and reload the panel. Missing or ambiguous profiles show a status message.
 
@@ -58,11 +60,29 @@ app_setup_block: |
 
   The original Selkies page remains accessible at `desktop.html` for troubleshooting. See [Device panel details](tools/printer-panel/README.md) for configuration limits and implementation notes.
 
+  #### Nextcloud login
+
+  After login, select the Nextcloud directory for your projects: open folders in the panel, use the up arrow to return to the parent, and confirm **Use this folder**. The panel lists existing folders through WebDAV, using Nextcloud's actual account ID even when you sign in with an email address. The chosen directory is stored with the connection, remains available after restarts, and can be changed at any time. No files are synchronized or moved by this selection.
+
+  Open **Nextcloud** on the right edge of the browser desktop, enter your Nextcloud HTTPS address (including its subdirectory if applicable), and choose **Connect to Nextcloud**. Login Flow v2 opens Nextcloud in a separate browser tab for login and access approval, including your configured SSO or two-factor authentication. If the tab is blocked, use the displayed login link. The server must be reachable from both the browser and container with a valid TLS certificate. Reverse proxies must permit Nextcloud's `/index.php/login/v2` and polling endpoints without requiring a separate proxy login from the container.
+
+  The backend runs as `abc`, stores the connection and folder selection in `/config/.config/orcaslicer-nextcloud/credentials.json` (directory mode `0700`, file mode `0600`), and exposes status through the existing authenticated browser entrypoint. App passwords and polling tokens are not returned to the browser. **Disconnect** stops synchronization, removes the local credentials, and attempts to revoke the app password in Nextcloud; if the server is unreachable, revoke it manually under Nextcloud's security settings. See [Nextcloud Login Flow v2](https://docs.nextcloud.com/server/stable/developer_manual/client_apis/LoginFlow/index.html#login-flow-v2).
+
+  Choose a dedicated Nextcloud subfolder and click **Start syncing** to enable rclone bisync with `/config/Projects`, including `Sources`. It runs every 30 seconds, supports uploads, downloads and deletions on either side, and preserves simultaneous edits with local/cloud conflict filenames. The first run merges both directories; remote files replaced during that merge are moved into `.orcaslicer-sync-history/` at the Nextcloud account root. Subsequent runs use persistent comparison state under `/config/.config/orcaslicer-nextcloud/bisync/`. There are no additional staging copies or application upload queue; rclone uses its normal temporary files for safe downloads. Files without server-side hashes are streamed for checksum calculation when needed. Temporary `.part`, `.partial`, `.tmp`, and `.new` files are excluded. Do not remove `.orcaslicer-sync-check` from either folder; it guards access and permits syncing otherwise empty folders. Connection failures retry, while critical errors remain visible rather than automatically resetting the comparison state. Private logs are `bisync/<session>/sync.log`.
+
+  The initial implementation pauses synchronization while a saved Orca project is open, or its Project-storage status is unavailable; close it or open a new project to resume. This prevents incoming changes from replacing an active project file. **Sync now** requests an immediate run. **Stop syncing** persists the stopped state; enabled synchronization and its last successful time survive restarts. Stop synchronization before changing the remote folder. The Nextcloud file/3D browser is not implemented yet.
+
+  The Nextcloud panel button shows a status LED even when the panel is closed: red for no saved connection, a sync error or unavailable status; green for a connected account without a reported error; blinking green during a sync request or run. The tooltip provides the status in text. Green also applies when syncing is stopped or waiting; it does not perform a separate connectivity check. With reduced motion enabled, the LED stays steady.
+
   #### Wayland window and file uploads
 
   In Wayland mode, OrcaSlicer's main window has no desktop title bar or frame. Dialogs retain their normal window decorations.
 
-  Completed browser uploads of STL, OBJ, STEP/STP, and 3MF files are automatically dropped at the screen center by a supervised service that starts with the container. Keep OrcaSlicer maximized on **Prepare**, with its canvas covering that point. The upload directory is `FILE_MANAGER_PATH`, default `/config/Desktop`. Existing files, partial uploads, ordinary saves, and `.gcode.3mf` files are ignored; failed drops are not retried automatically. Files remain in the upload directory. This feature requires a single Wayland output and is disabled in X11 mode. A 3MF follows OrcaSlicer's normal project-opening behavior and may show prompts. See [Wayland file drop details](tools/wayland-file-drop/README.md) for details.
+  Completed browser uploads of STL, OBJ, STEP/STP, and 3MF files are automatically processed by a supervised service that starts with the container. Keep OrcaSlicer maximized on **Prepare**, with its canvas covering the screen center. The upload directory is `FILE_MANAGER_PATH`, default `/config/Desktop`. Existing files, partial uploads, ordinary saves, and `.gcode.3mf` files are ignored; failed drops are not retried automatically. Uploaded originals remain in the upload directory. This feature requires a single Wayland output and is disabled in X11 mode.
+
+  The bundled **Project storage** plugin is installed and enabled on first startup. With an empty, unnamed project, the first uploaded model creates `/config/Projects/<filename-without-extension>/<project-name>.3mf` and copies its original into `Sources/`. Orca's CLI supplies the geometry; the current session supplies printer, filament and process settings, including unsaved profile changes. The description records the source filename. A dropped 3MF is copied to its own project directory. Existing folders and source filenames receive numeric suffixes rather than being overwritten. Further model uploads are copied into `Sources/` beside the currently opened project and imported there. Save an already populated unnamed project before uploading more files.
+
+  Orca's normal project-loading and modified-profile dialogs remain under user control. Choose **Preferences > Project > Load behavior > Load All** or choose **Open as project** when asked. Until Orca confirms the prepared project's path/import, further uploads are held back. If opening is cancelled, open the prepared 3MF manually or run **Project storage** from Orca's Plugins dialog and choose **Cancel pending import**; prepared files are retained and the logs show their paths. The plugin must remain enabled, and exactly one Orca editor may be running. Configure Nextcloud synchronization through the browser panel; archiving sent G-code is not implemented. See [Wayland file drop details](tools/wayland-file-drop/README.md).
 # init diagram
 init_diagram: |
   "orcaslicer:latest": {
@@ -140,6 +160,13 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "15.10.26:", desc: "Show connection and sync activity on the Nextcloud panel button."}
+  - {date: "15.10.26:", desc: "Use English UI text and show live sync activity and transfer progress."}
+  - {date: "15.10.26:", desc: "Add bidirectional Nextcloud synchronization with rclone bisync."}
+  - {date: "14.10.26:", desc: "Add persistent Nextcloud project folder selection after login."}
+  - {date: "14.10.26:", desc: "Add Nextcloud Login Flow v2 to connect and disconnect an account."}
+  - {date: "14.10.26:", desc: "Use Projects and Sources for project storage directories."}
+  - {date: "13.10.26:", desc: "Create named project folders for browser uploads using Orca CLI and a project-state plugin."}
   - {date: "12.10.26:", desc: "Show the camera inside the Device panel with a return button."}
   - {date: "12.10.26:", desc: "Keep camera fullscreen on the camera instead of navigating to the desktop."}
   - {date: "12.10.26:", desc: "Match the printer panel label and icon to OrcaSlicer Device."}

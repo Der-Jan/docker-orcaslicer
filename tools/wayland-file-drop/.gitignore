@@ -9,3 +9,4 @@ xdg-shell.h
 *.log
 __pycache__/
 test-config/
+.project-storage-tests/

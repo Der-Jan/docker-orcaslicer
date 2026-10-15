@@ -87,6 +87,14 @@ RUN \
   ./orca.app --appimage-extract && \
   mv squashfs-root /opt/orcaslicer && \
   chmod -R a+rX /opt/orcaslicer && \
+  echo "**** install current rclone ****" && \
+  RCLONE_VERSION=$(curl -fsSL https://downloads.rclone.org/version.txt | awk '{print $2}') && \
+  curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-arm64.zip" -o "/tmp/rclone-${RCLONE_VERSION}-linux-arm64.zip" && \
+  curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/SHA256SUMS" -o /tmp/rclone.sha256 && \
+  cd /tmp && \
+  sha256sum --check --ignore-missing /tmp/rclone.sha256 && \
+  python3 -m zipfile -e "/tmp/rclone-${RCLONE_VERSION}-linux-arm64.zip" /tmp/rclone && \
+  install -m755 "/tmp/rclone/rclone-${RCLONE_VERSION}-linux-arm64/rclone" /usr/local/bin/rclone && \
   echo "**** build support fins plugin ****" && \
   if [ -z ${SUPPORT_FINS_VERSION+x} ]; then \
     SUPPORT_FINS_VERSION=$(curl -fsSL "https://api.github.com/repos/gittrahan/support-fins/commits/main" | jq -er '.sha'); \

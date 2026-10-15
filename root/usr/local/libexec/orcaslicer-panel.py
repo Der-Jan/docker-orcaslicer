@@ -30,7 +30,7 @@ def selected_printer():
             except (OSError, ValueError):
                 continue
         if len(connections) != 1:
-            return name, None, 'Im ausgewählten Orca-Profil ist keine eindeutige Druckeradresse gespeichert.'
+            return name, None, 'The selected Orca profile has no unique printer address.'
         address, api_key = connections.pop()
         if not isinstance(api_key, str) or (api_key and not re.fullmatch(r'[A-Za-z0-9._~+/=-]+', api_key)):
             raise ValueError('unsupported API key')
@@ -42,7 +42,7 @@ def selected_printer():
         port = url.port or (443 if url.scheme == 'https' else 80)
         return name, (url.scheme, url.hostname, port, api_key), ''
     except (OSError, ValueError, TypeError, AttributeError):
-        return '', None, 'Noch kein nutzbares Orca-Druckerprofil gespeichert.'
+        return '', None, 'No usable Orca printer profile has been saved yet.'
 
 
 def proxy_config(target):
@@ -88,7 +88,7 @@ def update():
                 if previous != offline:
                     subprocess.run(['nginx', '-s', 'reload'], capture_output=True)
                 ready = False
-                message = 'Die Druckeradresse konnte nicht als Proxy eingerichtet werden.'
+                message = 'Could not set up the printer connection.'
     revision = hashlib.sha256(json.dumps([name, target, ready, message]).encode()).hexdigest()[:16]
     metadata = json.dumps({'name': name, 'ready': ready, 'message': message, 'revision': revision}, ensure_ascii=False)
     metadata_path = RUNTIME / 'printer.json'
@@ -104,12 +104,26 @@ def initialize():
     RUNTIME.chmod(0o755)
     # Start with a safe offline proxy; the supervised watcher resolves the printer.
     atomic_write(RUNTIME / 'locations.conf', proxy_config(None))
-    atomic_write(RUNTIME / 'printer.json', json.dumps({'name': '', 'ready': False, 'message': 'Druckerprofil wird geladen.', 'revision': 'startup'}))
+    atomic_write(RUNTIME / 'printer.json', json.dumps({'name': '', 'ready': False, 'message': 'Loading printer profile.', 'revision': 'startup'}))
     nginx_path = Path('/etc/nginx/sites-available/default')
     include = '  include /run/orcaslicer-panel/locations.conf;\n'
     config = nginx_path.read_text()
+    nextcloud_include = '  include /run/orcaslicer-panel/nextcloud.conf;\n'
+    atomic_write(RUNTIME / 'nextcloud.conf', f'''
+location {PREFIX}printer-panel/nextcloud/ {{
+    proxy_pass http://127.0.0.1:8093/;
+    proxy_set_header Authorization "";
+    proxy_set_header Cookie "";
+    proxy_read_timeout 40s;
+    client_max_body_size 4k;
+    access_log off;
+}}
+''')
     if include not in config:
-        nginx_path.write_text(config.replace('server {\n', 'server {\n' + include))
+        config = config.replace('server {\n', 'server {\n' + include)
+    if nextcloud_include not in config:
+        config = config.replace('server {\n', 'server {\n' + nextcloud_include)
+    nginx_path.write_text(config)
     web = Path('/usr/share/selkies/web')
     original = web / 'desktop.html'
     if not original.exists():
@@ -117,7 +131,7 @@ def initialize():
     (web / 'index.html').write_bytes(Path('/defaults/printer-panel/index.html').read_bytes())
     assets = web / 'printer-panel'
     assets.mkdir(exist_ok=True)
-    for asset in ('panel.css', 'panel.js'):
+    for asset in ('panel.css', 'panel.js', 'nextcloud.js'):
         (assets / asset).write_bytes((Path('/defaults/printer-panel') / asset).read_bytes())
 
 

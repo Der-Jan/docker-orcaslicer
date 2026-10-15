@@ -54,7 +54,7 @@ function bindDeviceCamera(deviceFrame) {
     returnButton = deviceDocument.createElement('button');
     returnButton.type = 'button';
     returnButton.className = 'orca-camera-return';
-    returnButton.textContent = 'Zur Device-Ansicht';
+    returnButton.textContent = 'Back to Device';
     camera.append(returnButton);
     returnButton.focus({preventScroll: true});
   }, true);
@@ -76,12 +76,13 @@ function save() { try { localStorage.setItem('orca-panel-width', String(width));
 function updatePin() {
   document.body.classList.toggle('pinned', pinned);
   document.getElementById('pin').setAttribute('aria-pressed', String(pinned));
-  document.getElementById('mode-label').textContent = pinned ? 'Neben dem Slicer angeheftet' : 'Über dem Slicer';
+  document.getElementById('mode-label').textContent = pinned ? 'Pinned beside the slicer' : 'Overlay on the slicer';
 }
 function openPanel(open) {
+  if (open) document.dispatchEvent(new Event('orca-device-open'));
   panel.hidden = !open;
   toggle.setAttribute('aria-expanded', String(open));
-  toggle.title = open ? 'Device-Ansicht schließen' : 'Device-Ansicht öffnen';
+  toggle.title = open ? 'Close Device panel' : 'Open Device panel';
   document.getElementById('tab-arrow').textContent = open ? '›' : '‹';
   document.body.classList.toggle('panel-open', open);
   if (open && printerReady && frame.getAttribute('src') === 'about:blank') frame.src = 'device/';
@@ -135,7 +136,7 @@ async function updatePrinter() {
     frame.src = 'about:blank';
     printerRevision = null;
     const status = document.getElementById('printer-status');
-    status.textContent = 'Druckerprofil momentan nicht verfügbar.';
+    status.textContent = 'Printer profile is currently unavailable.';
     status.hidden = false;
   }
 }

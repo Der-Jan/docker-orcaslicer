@@ -7,3 +7,16 @@ if [[ ! -e "${plugin_dir}" ]]; then
     s6-setuidgid abc cp -R /defaults/support-fins "${plugin_dir}" || exit 1
     echo "[orcaslicer-plugins] Installed Support Fins. Enable it in OrcaSlicer's Plugins dialog."
 fi
+
+install -d -m 0700 /run/orcaslicer-project-storage
+lsiown abc:abc /run/orcaslicer-project-storage
+for slot in {0..7}; do
+    install -d -m 0700 "/run/orcaslicer-project-storage/${slot}"
+    lsiown abc:abc "/run/orcaslicer-project-storage/${slot}"
+done
+storage_dir="${XDG_CONFIG_HOME:-/config/.config}/OrcaSlicer/orca_plugins/ProjectStorage"
+if [[ ! -e "${storage_dir}" ]]; then
+    s6-setuidgid abc mkdir -p "${storage_dir%/*}" || exit 1
+    s6-setuidgid abc cp -R /defaults/project-storage "${storage_dir}" || exit 1
+    echo "[orcaslicer-plugins] Installed and enabled Project storage."
+fi

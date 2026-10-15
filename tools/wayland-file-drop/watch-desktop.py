@@ -11,6 +11,7 @@ import signal
 import stat
 import struct
 import subprocess
+import sys
 import time
 
 EVENT = struct.Struct("iIII")
@@ -23,6 +24,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, default=Path(os.environ.get("FILE_MANAGER_PATH", str(Path.home() / "Desktop"))))
     parser.add_argument("--helper", type=Path, default=Path(__file__).resolve().with_name("wayland-file-drop"))
+    parser.add_argument("--project-helper", type=Path, help="prepare uploads in a project folder before dropping")
     parser.add_argument("--once", action="store_true", help="stop after the first supported completed upload")
     parser.add_argument("--dry-run", action="store_true", help="log eligible uploads without moving the pointer or importing")
     args = parser.parse_args()
@@ -108,9 +110,12 @@ def main():
                         continue
                     LOG.info("%s %s", "Would drop" if args.dry_run else "Dropping", path.name)
                     if not args.dry_run:
-                        child = subprocess.Popen([str(helper), str(path)])
+                        command = [str(helper), str(path)]
+                        if args.project_helper:
+                            command = [sys.executable, str(args.project_helper), '--helper', str(helper), str(path)]
+                        child = subprocess.Popen(command)
                         try:
-                            result = child.wait(timeout=30)
+                            result = child.wait(timeout=480 if args.project_helper else 30)
                         except subprocess.TimeoutExpired:
                             child.terminate()
                             try:
