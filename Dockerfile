@@ -105,10 +105,21 @@ RUN \
   curl -fsSL "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.0.tgz" -o /build/esbuild.tar.gz && \
   tar -xzf /build/esbuild.tar.gz --strip-components=1 -C /build/esbuild && \
   ESBUILD=/build/esbuild/bin/esbuild python3 /build/support-fins/plugins/orca/build.py && \
-  install -Dm644 /build/support-fins/plugins/orca/build/support_fins_orca.py /defaults/support-fins/support_fins_orca.py && \
-  install -m644 /build/support-fins/LICENSE /defaults/support-fins/LICENSE && \
-  printf "%s\n" "${SUPPORT_FINS_VERSION}" > /defaults/support-fins/VERSION && \
-  rm -rf /build/support-fins /build/esbuild /build/support-fins.tar.gz /build/esbuild.tar.gz && \
+  install -Dm644 /build/support-fins/plugins/orca/build/support_fins_orca.py /usr/local/share/orcaslicer/plugins/SupportFins/support_fins_orca.py && \
+  install -m644 /build/support-fins/LICENSE /usr/local/share/orcaslicer/plugins/SupportFins/LICENSE && \
+  printf "%s\n" "${SUPPORT_FINS_VERSION}" > /usr/local/share/orcaslicer/plugins/SupportFins/VERSION && \
+  echo "**** install bundled plugin dependencies ****" && \
+  python3 -c 'import pathlib,tomllib; text=pathlib.Path("/usr/local/share/orcaslicer/plugins/SupportFins/support_fins_orca.py").read_text().split("# /// script",1)[1].split("# ///",1)[0]; metadata=tomllib.loads("\n".join(line[2:] for line in text.splitlines() if line.startswith("# "))); print("\n".join(metadata.get("dependencies",[])))' > /build/plugin-requirements.txt && \
+  PYTHON_ABI=$(LD_LIBRARY_PATH=/opt/orcaslicer/lib/python/lib /opt/orcaslicer/lib/python/bin/python3 -c 'import sys; print(f"cp{sys.version_info.major}{sys.version_info.minor}")') && \
+  mkdir -p /usr/local/share/orcaslicer/python && \
+  printf "%s\n" "${PYTHON_ABI}" > /usr/local/share/orcaslicer/python/ABI && \
+  LD_LIBRARY_PATH=/opt/orcaslicer/lib/python/lib /opt/orcaslicer/resources/tools/uv/uv pip install \
+    --python /opt/orcaslicer/lib/python/bin/python3 --no-python-downloads \
+    --target "/usr/local/share/orcaslicer/python/${PYTHON_ABI}" -r /build/plugin-requirements.txt && \
+  install -m644 /build/plugin-requirements.txt /usr/local/share/orcaslicer/plugins/SupportFins/requirements.txt && \
+  sed -i 's/^# dependencies = .*/# dependencies = []/' /usr/local/share/orcaslicer/plugins/SupportFins/support_fins_orca.py && \
+  sed -i '/^    import numpy as np$/a\    import numpy.ma\n    import numpy.linalg' /usr/local/share/orcaslicer/plugins/SupportFins/support_fins_orca.py && \
+  rm -rf /build/support-fins /build/esbuild /build/support-fins.tar.gz /build/esbuild.tar.gz /build/plugin-requirements.txt && \
   localedef -i en_GB -f UTF-8 en_GB.UTF-8 && \
   chmod +x /opt/orcaslicer/libexec/orca-slicer-env && \
   echo "**** configure orcaslicer window decorations ****" && \
@@ -128,4 +139,4 @@ COPY /root /
 
 # ports and volumes
 EXPOSE 3001
-VOLUME /config
+VOLUME /config /data/orcaslicer

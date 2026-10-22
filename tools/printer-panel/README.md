@@ -69,7 +69,7 @@ Mutating requests require JSON and a custom header; no CORS access is granted.
 Polling happens in the backend for at most twenty minutes. Only the login URL
 is returned to the browser; the poll token remains in memory. The returned app
 password is persisted with mode `0600` inside the mode `0700` directory
-`/config/.config/orcaslicer-nextcloud/`. The service does not follow HTTP
+`/data/orcaslicer/nextcloud/`. The service does not follow HTTP
 redirects; returned endpoints must stay under the configured HTTPS origin and
 base path. Both the container and browser must reach the configured server.
 Nextcloud's login API must not require an additional reverse-proxy login from

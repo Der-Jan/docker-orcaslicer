@@ -71,7 +71,7 @@ def folder_path(value):
 
 class Login:
     def __init__(self, directory=None):
-        self.directory = directory or Path(os.environ.get('XDG_CONFIG_HOME', '/config/.config')) / 'orcaslicer-nextcloud'
+        self.directory = directory or Path('/data/orcaslicer/nextcloud')
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.directory.chmod(0o700)
         self.path = self.directory / 'credentials.json'

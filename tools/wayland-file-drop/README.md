@@ -56,6 +56,17 @@ Orca's native snapshot; the CLI uses the selected printer's geometry for arrangi
 The project's Description records the original source filename. The model is
 already contained in the 3MF and is not imported a second time.
 
+If snapshot/CLI conversion fails, including unsupported STEP/STP input, the helper
+keeps the original in the newly allocated `Sources/` folder and drops that file
+into the still-empty editor instead. It rechecks the session before importing and
+confirms the source/object change, rather than expecting a named 3MF to open.
+The Project storage panel shows an English explanation and the proposed Save
+Project As path; dismissing that message does not affect the import. The user
+must save the project manually in this case. Private diagnostics are retained
+under `/data/orcaslicer/import-logs` instead of being synced with project files.
+Malformed/empty CLI 3MF archives never become project files, and partial exports
+are removed. A failed or unconfirmed native drop is never repeated automatically.
+
 Later model uploads go into `Sources/` alongside the open project's 3MF. They do
 not rename that project or automatically save its changes. Existing project
 folders and source files receive `-2`, `-3`, etc. suffixes rather than being

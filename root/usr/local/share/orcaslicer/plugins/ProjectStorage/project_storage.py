@@ -3,7 +3,7 @@
 # [tool.orcaslicer.plugin]
 # name = "Project storage"
 # description = "Associate browser uploads with the open OrcaSlicer project."
-# version = "1.0.0"
+# version = "1.1.0"
 # ///
 import json
 import fcntl
@@ -15,10 +15,12 @@ import uuid
 import orca
 
 ROOT = Path('/run/orcaslicer-project-storage')
-PAGE = '''<p>Project storage is active. New projects are stored in /config/Projects.</p>
+PAGE = '''<style>body{font:13px system-ui;margin:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 8px}p{font-size:12px;margin:8px 0}</style>
+<pre id="status"></pre>
+<button onclick="orca.postMessage({action:'dismiss_notice'})">Dismiss message</button>
 <button onclick="orca.postMessage({action:'clear_pending'})">Cancel pending import</button>
-<p>Cancel releases the upload queue. Files already prepared are kept.</p>
-<pre id="status"></pre><script>
+<p>Projects: /config/Projects. Cancel releases a pending import without deleting files.</p>
+<script>
 orca.onMessage(x => document.getElementById('status').textContent = x);
 setInterval(() => orca.postMessage({tick:true}), 500);
 orca.postMessage({tick:true});
@@ -51,9 +53,10 @@ class Storage(orca.script.ScriptPluginCapabilityBase):
         else:
             raise RuntimeError('No free project storage session')
         self.last_request = None
+        self.notice = ''
         self.hide_when_ready = True
         self.panel = orca.host.ui.create_dock_panel(
-            html=PAGE, title='Project storage', width=320, height=120,
+            html=PAGE, title='Project storage', width=320, height=180,
             dock='bottom', on_message=self.tick)
 
     def on_unload(self):
@@ -83,6 +86,9 @@ class Storage(orca.script.ScriptPluginCapabilityBase):
 
     def tick(self, message):
         try:
+            if message.get('action') == 'dismiss_notice':
+                self.notice = ''
+                self.panel.hide()
             if message.get('action') == 'clear_pending':
                 pending_path = ROOT / 'pending.json'
                 if pending_path.exists():
@@ -110,11 +116,16 @@ class Storage(orca.script.ScriptPluginCapabilityBase):
                             reply.update(template=str(snapshot), printer_keys=printer.config_keys(), printer_name=printer.name)
                         elif request['action'] != 'check':
                             raise RuntimeError('Unknown project storage request')
+                        if request.get('notice'):
+                            self.notice = str(request['notice'])
+                            self.hide_when_ready = False
+                            self.panel.show()
                     except Exception as error:
                         reply['error'] = str(error)
                     write_json(self.directory / 'reply.json', reply)
             write_json(self.directory / 'state.json', state)
-            self.panel.post(state['path'] or ('Empty project' if not state['objects'] else 'Unsaved project'))
+            label = state['path'] or ('Empty project' if not state['objects'] else 'Unsaved project')
+            self.panel.post(f'{self.notice}\n\n{label}' if self.notice else label)
             if self.hide_when_ready:
                 self.hide_when_ready = False
                 self.panel.hide()

@@ -11,7 +11,7 @@ import time
 from urllib.parse import urlsplit
 
 RUNTIME = Path('/run/orcaslicer-panel')
-CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', '/config/.config')) / 'OrcaSlicer'
+CONFIG = Path('/data/orcaslicer')
 PREFIX = '/' + os.environ.get('SUBFOLDER', '/').strip('/')
 PREFIX = PREFIX.rstrip('/') + '/'
 TEMPLATE = Path('/defaults/printer-panel/locations.conf.template')

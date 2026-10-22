@@ -1,0 +1,11 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+
+for desktop in labwc openbox; do
+    for name in autostart menu.xml; do
+        file="/config/.config/${desktop}/${name}"
+        if [[ -f "${file}" ]]; then
+            sed -i 's|/opt/orcaslicer/AppRun|/usr/local/bin/orcaslicer-desktop|g' "${file}"
+        fi
+    done
+done

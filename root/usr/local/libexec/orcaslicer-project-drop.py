@@ -18,6 +18,9 @@ import zipfile
 LOG = logging.getLogger('project-drop')
 STATE_ROOT = Path('/run/orcaslicer-project-storage')
 PROJECT_ROOT = Path.home() / 'Projects'
+LOG_ROOT = Path('/data/orcaslicer/import-logs')
+CONVERSION_ERRORS = (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
+                     zipfile.BadZipFile, ET.ParseError, KeyError, TypeError)
 
 
 def read_json(path):
@@ -57,13 +60,16 @@ def pending_matches(state, pending):
     return True
 
 
-def request(directory, state, action, timeout=30):
+def request(directory, state, action, timeout=30, notice=None):
     current_directory, current = active_session()
     if current_directory != directory or current['session'] != state['session']:
         raise RuntimeError('The Orca session changed while preparing the upload')
     nonce = uuid.uuid4().hex
     temporary = directory / 'request.part'
-    temporary.write_text(json.dumps({'nonce': nonce, 'action': action, 'expected': state}), encoding='utf-8')
+    payload = {'nonce': nonce, 'action': action, 'expected': state}
+    if notice:
+        payload['notice'] = notice
+    temporary.write_text(json.dumps(payload), encoding='utf-8')
     temporary.replace(directory / 'request.json')
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -126,7 +132,15 @@ def run_process(command, timeout, cwd=None, log=None):
                     process.wait()
 
 
-def create_project(source, project, reply, directory, cli):
+def create_project(source, project, reply, directory, cli, log_path=None):
+    staging = project.with_suffix('.part')
+    try:
+        build_project(source, project, reply, directory, cli, log_path)
+    finally:
+        staging.unlink(missing_ok=True)
+
+
+def build_project(source, project, reply, directory, cli, log_path):
     template = Path(reply['template'])
     with zipfile.ZipFile(template) as archive:
         settings = json.loads(archive.read('Metadata/project_settings.config'))
@@ -138,12 +152,17 @@ def create_project(source, project, reply, directory, cli):
     geometry.unlink(missing_ok=True)
     command = [str(cli), '--datadir', str(directory / 'cli-config'), '--load-settings', str(machine),
                '--arrange', '1', '--export-3mf', str(geometry), str(source)]
-    with (directory / 'cli.log').open('w', encoding='utf-8') as log:
+    log_path = log_path or directory / 'cli.log'
+    with log_path.open('w', encoding='utf-8') as log:
+        log_path.chmod(0o600)
         result = run_process(command, 120, cwd=directory, log=log)
     if result or not geometry.is_file():
-        raise RuntimeError(f'Orca CLI could not create the project (exit {result}); details: {directory / "cli.log"}')
+        raise RuntimeError(f'Orca CLI could not create the project (exit {result}); details: {log_path}')
     # Keep Orca's native config, profile differences and metadata; the CLI supplies the geometry.
     with zipfile.ZipFile(template) as original, zipfile.ZipFile(geometry) as model:
+        models = [name for name in model.namelist() if name.endswith('.model')]
+        if model.testzip() or not any(ET.fromstring(model.read(name)).find('.//{*}triangle') is not None for name in models):
+            raise ValueError('Orca CLI produced an invalid or empty 3MF model')
         replacements = {name: original.read(name) for name in original.namelist()
                         if name == 'Metadata/project_settings.config' or name.startswith('Metadata/') and name.endswith('.json')}
         root = ET.fromstring(model.read('3D/3dmodel.model'))
@@ -175,6 +194,37 @@ def create_project(source, project, reply, directory, cli):
         staging.replace(project)
 
 
+def import_new_model(source, directory, state, helper, cli):
+    folder = new_directory(source)
+    copied = copy_source(source, folder / 'Sources')
+    target = folder / f'{folder.name}.3mf'
+    LOG_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
+    log_path = LOG_ROOT / f'{uuid.uuid4().hex}.log'
+    log_path.touch(mode=0o600)
+    notice = None
+    pending_source = None
+    pending_project = target
+    try:
+        reply = request(directory, state, 'template')
+        create_project(copied, target, reply, directory, cli, log_path=log_path)
+    except CONVERSION_ERRORS as error:
+        with log_path.open('a', encoding='utf-8') as log:
+            log.write(f'\nProject creation failed for {copied}: {type(error).__name__}: {error}\n')
+        LOG.warning('Could not create %s: %s; importing the original model from %s', target, error, copied)
+        target = copied
+        pending_project = state['path']
+        pending_source = copied
+        notice = (f'Automatic 3MF creation failed. Opening the original model from {copied}.\n'
+                  f'Use Save Project As to save it as {folder / (folder.name + ".3mf")}.\n'
+                  f'Details: {log_path}')
+    # Conversion failure must never bypass the session/project check or retry a drop.
+    request(directory, state, 'check', notice=notice)
+    pending = mark_pending(state, pending_project, source=pending_source)
+    drop(helper, target)
+    wait_for_project(directory, state, pending)
+    return folder, target
+
+
 def mark_pending(state, project, source=None):
     pending = {'session': state['session'], 'path': str(project)}
     if source:
@@ -202,7 +252,8 @@ def wait_for_project(directory, state, pending, timeout=180):
         if not (STATE_ROOT / 'pending.json').exists():
             raise RuntimeError('Pending import cancelled; prepared files are retained')
         time.sleep(0.5)
-    raise RuntimeError(f"Project opening/import was not confirmed. Complete Orca's dialogs, open {pending['path']}, or run Project storage > Cancel pending import; no drop is retried")
+    target = pending.get('source') or pending['path']
+    raise RuntimeError(f"Project opening/import was not confirmed. Complete Orca's dialogs, open {target}, or run Project storage > Cancel pending import; no drop is retried")
 
 
 def main():
@@ -235,15 +286,7 @@ def main():
         else:
             if state['objects']:
                 raise RuntimeError('Save the existing unnamed project first; the uploaded file remains on the Desktop')
-            reply = request(directory, state, 'template')
-            folder = new_directory(source)
-            copied = copy_source(source, folder / 'Sources')
-            target = folder / f'{folder.name}.3mf'
-            create_project(copied, target, reply, directory, args.cli)
-            request(directory, state, 'check')
-            pending = mark_pending(state, target)
-            drop(args.helper, target)
-            wait_for_project(directory, state, pending)
+            folder, target = import_new_model(source, directory, state, args.helper, args.cli)
         LOG.info('Project: %s; file: %s', folder, target)
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired, zipfile.BadZipFile) as error:
         LOG.error('%s', error)

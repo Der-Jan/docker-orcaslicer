@@ -1,12 +1,52 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
 
-plugin_dir="${XDG_CONFIG_HOME:-/config/.config}/OrcaSlicer/orca_plugins/SupportFins"
-if [[ ! -e "${plugin_dir}" ]]; then
-    s6-setuidgid abc mkdir -p "${plugin_dir%/*}" || exit 1
-    s6-setuidgid abc cp -R /defaults/support-fins "${plugin_dir}" || exit 1
-    echo "[orcaslicer-plugins] Installed Support Fins. Enable it in OrcaSlicer's Plugins dialog."
+install -d -m 0755 /data/orcaslicer
+lsiown abc:abc /data/orcaslicer
+# keep the OS identity stable for OrcaCloud's encrypted login across image updates
+identity=/data/orcaslicer/.machine-id
+if [[ ! -s "${identity}" ]]; then
+    if [[ -s /etc/machine-id ]]; then
+        cp /etc/machine-id "${identity}"
+    else
+        python3 -c 'import uuid; print(uuid.uuid4().hex)' > "${identity}"
+    fi
+    chmod 0600 "${identity}"
+    lsiown abc:abc "${identity}"
 fi
+machine_id=$(<"${identity}")
+if [[ ! "${machine_id}" =~ ^[a-f0-9]{32}$ ]]; then
+    echo "[orcaslicer-plugins] Invalid persistent machine ID in ${identity}."
+    exit 1
+fi
+printf '%s\n' "${machine_id}" > /etc/machine-id
+
+plugin_root=/data/orcaslicer/orca_plugins
+image_root=/usr/local/share/orcaslicer
+
+for plugin in SupportFins ProjectStorage; do
+    plugin_dir="${plugin_root}/${plugin}"
+    s6-setuidgid abc mkdir -p "${plugin_dir}" || exit 1
+    for source in "${image_root}/plugins/${plugin}/"*; do
+        s6-setuidgid abc ln -sfn "${source}" "${plugin_dir}/${source##*/}" || exit 1
+    done
+done
+if [[ ! -e "${plugin_root}/ProjectStorage/.install_state.json" ]]; then
+    s6-setuidgid abc cp /defaults/project-storage/.install_state.json \
+        "${plugin_root}/ProjectStorage/.install_state.json" || exit 1
+fi
+
+abi=$(cat "${image_root}/python/ABI")
+packages="/data/orcaslicer/python/packages/${abi}"
+s6-setuidgid abc mkdir -p "${packages}" || exit 1
+for source in "${image_root}/python/${abi}/"*; do
+    target="${packages}/${source##*/}"
+    if [[ -e "${target}" && ! -L "${target}" ]]; then
+        echo "[orcaslicer-plugins] Move the old image-provided package out of ${target} before starting."
+        exit 1
+    fi
+    s6-setuidgid abc ln -sfn "${source}" "${target}" || exit 1
+done
 
 install -d -m 0700 /run/orcaslicer-project-storage
 lsiown abc:abc /run/orcaslicer-project-storage
@@ -14,9 +54,4 @@ for slot in {0..7}; do
     install -d -m 0700 "/run/orcaslicer-project-storage/${slot}"
     lsiown abc:abc "/run/orcaslicer-project-storage/${slot}"
 done
-storage_dir="${XDG_CONFIG_HOME:-/config/.config}/OrcaSlicer/orca_plugins/ProjectStorage"
-if [[ ! -e "${storage_dir}" ]]; then
-    s6-setuidgid abc mkdir -p "${storage_dir%/*}" || exit 1
-    s6-setuidgid abc cp -R /defaults/project-storage "${storage_dir}" || exit 1
-    echo "[orcaslicer-plugins] Installed and enabled Project storage."
-fi
+echo "[orcaslicer-plugins] Linked image-provided plugins and Python packages."
