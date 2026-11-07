@@ -13,7 +13,10 @@ to the custom UI maintained here.
 
 Actions must explain their effect. **Sync now** requests an immediate run of
 the existing bidirectional sync, bypassing the normal 30-second interval. It
-does not bypass project protection or enable a stopped sync. Show immediate
+allows an open project for that one run and does not enable a stopped sync.
+Block browser desktop input and drops while a manual run is pending or active,
+including while stopping. Keep loading/saving/slicing and unavailable-status
+guards. Sync saved files only; do not reload open projects automatically. Show immediate
 acknowledgement, the current phase, actual transfer progress when available,
 and the outcome. Distinguish waiting from running, errors from success, and
 unknown progress from a measured percentage. Never show a fabricated percentage.

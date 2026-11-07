@@ -154,6 +154,25 @@ with patch('orcaslicer_nextcloud_sync.project_guard', return_value='project open
     else:
         raise AssertionError('Open project must pause sync')
     spawn.assert_not_called()
+
+# Exercise the manual exception through the real rclone process, including its
+# repeated guard checks during transfer. The next automatic attempt stays blocked.
+(PROJECTS / 'manual-open-project.stl').write_bytes(b'saved file with editor open')
+def open_project(allow_open=False):
+    return '' if allow_open else 'project open'
+with patch('orcaslicer_nextcloud_sync.project_guard', side_effect=open_project):
+    sync.manual_running = True
+    try:
+        run('Manual sync with an open project')
+    finally:
+        sync.manual_running = False
+    assert remote('/Projects/manual-open-project.stl') == b'saved file with editor open'
+    try:
+        sync.run(credentials)
+    except InterruptedError:
+        pass
+    else:
+        raise AssertionError('Following automatic sync must still wait for the open project')
 sync.enable(False)
 restored = module.Login(login.directory)
 assert restored.credentials['sync_enabled'] is False

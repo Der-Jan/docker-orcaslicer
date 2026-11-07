@@ -163,6 +163,74 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(status['progress']['totalBytes'], 1024)
         self.assertNotIn('private log detail', json.dumps(status))
 
+    def test_manual_guard_allows_open_projects_but_not_busy_or_missing_status(self):
+        fixture = self.login.directory / 'guard'
+        process = fixture / 'proc/123'
+        process.mkdir(parents=True)
+        (process / 'comm').write_text('orcaslicer_main')
+        state_dir = fixture / 'states/0'
+        state_dir.mkdir(parents=True)
+        state = {'time': time.time(), 'path': '/config/Projects/model.3mf', 'busy': False}
+        def mapped_path(value):
+            return {'/proc': fixture / 'proc',
+                    '/run/orcaslicer-project-storage': fixture / 'states'}.get(value, Path(value))
+        with patch.object(sync_worker, 'Path', side_effect=mapped_path):
+            for changes, allowed in [({}, True), ({'busy': True}, False),
+                                     ({'busy': False, 'time': 0}, False)]:
+                state.update(changes)
+                (state_dir / 'state.json').write_text(json.dumps(state))
+                self.assertTrue(sync_worker.project_guard())
+                self.assertEqual(sync_worker.project_guard(allow_open=True) == '', allowed)
+
+    def test_manual_exception_and_input_lock_end_after_success_or_failure(self):
+        self.login.credentials = dict(CREDENTIALS, folder='/Projects', sync_enabled=True)
+        for failure in (None, RuntimeError('Cloud unavailable.')):
+            with self.subTest(failure=failure):
+                sync = sync_worker.Sync(self.login)
+                entered, release = threading.Event(), threading.Event()
+                modes = []
+                def run(credentials):
+                    modes.append(sync.manual_running)
+                    if len(modes) == 1:
+                        entered.set()
+                        release.wait(2)
+                        if failure:
+                            raise failure
+                    else:
+                        raise InterruptedError('Automatic sync waits for the open project.')
+                sync.request_now()
+                self.assertTrue(sync.status()['editor_locked'])
+                with patch.object(sync, 'run', side_effect=run):
+                    sync.thread.start()
+                    try:
+                        self.assertTrue(entered.wait(2))
+                        self.assertTrue(sync.status()['editor_locked'])
+                        release.set()
+                        deadline = time.monotonic() + 2
+                        while sync.running and time.monotonic() < deadline:
+                            time.sleep(.01)
+                        self.assertFalse(sync.status()['editor_locked'])
+                        sync.wake.set()
+                        deadline = time.monotonic() + 2
+                        while len(modes) < 2 and time.monotonic() < deadline:
+                            time.sleep(.01)
+                        self.assertEqual(modes, [True, False])
+                    finally:
+                        release.set()
+                        sync.close()
+
+    def test_stopping_keeps_input_locked_until_manual_run_finishes(self):
+        self.login.credentials = dict(CREDENTIALS, folder='/Projects', sync_enabled=True)
+        sync = sync_worker.Sync(self.login)
+        sync.request_now()
+        sync.manual_requested = False
+        sync.manual_running = sync.running = True
+        sync.enable(False)
+        self.assertEqual(sync.status()['phase'], 'stopping')
+        self.assertTrue(sync.status()['editor_locked'])
+        sync.manual_running = sync.running = False
+        self.assertFalse(sync.status()['editor_locked'])
+
     def test_waiting_is_distinct_from_sync_errors(self):
         self.login.credentials = dict(CREDENTIALS, folder='/Projects', sync_enabled=True)
         for error, phase in [(InterruptedError('Close the project first.'), 'waiting'), (RuntimeError('Cloud unavailable.'), 'error')]:

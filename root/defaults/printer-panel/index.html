@@ -8,9 +8,17 @@
   <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <main id="workspace" aria-label="OrcaSlicer">
+  <main id="workspace" aria-label="OrcaSlicer" inert>
     <iframe id="desktop-frame" title="OrcaSlicer Desktop" src="../desktop.html" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
   </main>
+  <section id="nextcloud-editor-lock" role="status" aria-live="polite" hidden>
+    <div>
+      <strong>Syncing saved project files</strong>
+      <p>Desktop input is paused until this sync finishes. Unsaved changes stay in Orca.</p>
+      <p id="nextcloud-editor-lock-status">Requesting an immediate sync…</p>
+      <button id="nextcloud-editor-lock-stop">Stop syncing</button>
+    </div>
+  </section>
 
   <button id="printer-toggle" class="edge-tab" aria-controls="printer-panel" aria-expanded="false" title="Open Device panel">
     <svg class="device-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="4.5" y1="14.5" x2="14.5" y2="14.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="8.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="10.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="4.5" y1="6.5" x2="7" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="12" y1="6.5" x2="14.5" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><rect x="7.5" y="4.5" width="4" height="5" rx="0.5" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="1.5" y="2.5" width="16" height="15" rx="1" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="9" y="7" width="1" height="1" style="fill:#fff"/></svg>
@@ -71,7 +79,7 @@
         <button id="nextcloud-sync-start">Start syncing</button>
         <button id="nextcloud-sync-stop" hidden>Stop syncing</button>
         <button id="nextcloud-sync-now" title="Run the two-way sync now instead of waiting for the next automatic check" hidden>Sync now</button>
-        <p class="nextcloud-note">Automatic checks run every 30 seconds. Sync now requests an immediate check; project protection still applies.</p>
+        <p class="nextcloud-note">Automatic checks run every 30 seconds and wait for open projects to close. Sync now also works with an open project and pauses desktop input during the run. Only saved files are synced; downloaded changes are not automatically reloaded.</p>
       </section>
       <p class="nextcloud-note">Your connection, folder selection and sync setting are kept across restarts.</p>
     </div>

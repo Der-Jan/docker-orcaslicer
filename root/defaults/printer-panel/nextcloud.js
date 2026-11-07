@@ -19,6 +19,10 @@
   const syncNow = document.getElementById('nextcloud-sync-now');
   const syncActivity = document.getElementById('nextcloud-sync-activity');
   const syncProgress = document.getElementById('nextcloud-sync-progress');
+  const workspace = document.getElementById('workspace');
+  const editorLock = document.getElementById('nextcloud-editor-lock');
+  const editorLockStop = document.getElementById('nextcloud-editor-lock-stop');
+  let mutation = 0;
   let syncing = false;
   let folderAccount = null;
   let folderPath = '/';
@@ -59,6 +63,12 @@
     return `${size.toLocaleString('en-GB', {maximumFractionDigits: unit ? 1 : 0})} ${units[unit]}`;
   }
   function renderSync(sync) {
+    const locked = Boolean(sync.editor_locked);
+    workspace.inert = locked;
+    editorLock.hidden = !locked;
+    document.getElementById('nextcloud-editor-lock-status').textContent = sync.message || 'Syncing files…';
+    editorLockStop.disabled = !sync.enabled || busy;
+    if (locked && document.activeElement === document.getElementById('desktop-frame')) editorLockStop.focus();
     const phase = sync.phase || (sync.enabled ? 'checking' : 'disabled');
     if (!connected) tabStatus('error', 'Not connected');
     else if (phase === 'error') tabStatus('error', sync.message || 'Sync error');
@@ -164,7 +174,11 @@
   async function refresh() {
     if (refreshing || busy) return;
     refreshing = true;
-    try { render(await api('status')); }
+    const generation = mutation;
+    try {
+      const result = await api('status');
+      if (!busy && generation === mutation) render(result);
+    }
     catch {
       status.textContent = 'Connection status is currently unavailable.';
       tabStatus('error', 'Connection status is unavailable');
@@ -199,12 +213,13 @@
   async function perform(action) {
     if (busy) return;
     busy = true;
+    mutation++;
     cancel.disabled = true;
     disconnect.disabled = true;
     syncStart.disabled = syncStop.disabled = syncNow.disabled = true;
     if (action === 'sync-now') {
       syncNow.textContent = 'Requesting…';
-      renderSync({enabled: true, phase: 'requested', message: 'Requesting an immediate sync…'});
+      renderSync({enabled: true, editor_locked: true, phase: 'requested', message: 'Requesting an immediate sync…'});
     }
     try { render(await api(action, {})); }
     catch (error) { status.textContent = error.message; }
@@ -216,6 +231,10 @@
   syncStart.addEventListener('click', () => perform('sync-start'));
   syncStop.addEventListener('click', () => perform('sync-stop'));
   syncNow.addEventListener('click', () => perform('sync-now'));
+  editorLockStop.addEventListener('click', () => perform('sync-stop'));
+  for (const type of ['dragover', 'drop']) document.addEventListener(type, event => {
+    if (!editorLock.hidden) { event.preventDefault(); event.stopImmediatePropagation(); }
+  }, true);
   toggle.addEventListener('click', () => open(panel.hidden));
   document.getElementById('nextcloud-close').addEventListener('click', () => { open(false); toggle.focus(); });
   document.addEventListener('orca-device-open', () => open(false));

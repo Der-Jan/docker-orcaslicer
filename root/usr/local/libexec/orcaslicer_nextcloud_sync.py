@@ -20,7 +20,7 @@ def identity(credentials):
     return hashlib.sha256(json.dumps([credentials.get('server'), credentials.get('userId'), credentials.get('folder'), EXCLUDES]).encode()).hexdigest()[:24]
 
 
-def project_guard():
+def project_guard(allow_open=False):
     running = any(p.name.isdigit() and (p / 'comm').exists()
                   and 'orcaslicer' in (p / 'comm').read_text(errors='replace')
                   for p in Path('/proc').iterdir())
@@ -38,7 +38,9 @@ def project_guard():
             continue
     if len(states) != 1 or states[0].get('error'):
         return 'Waiting for Orca project status. Enable the Project storage plugin.'
-    if states[0].get('path') or states[0].get('busy'):
+    if states[0].get('busy'):
+        return 'Waiting for Orca to finish loading, saving or slicing.'
+    if states[0].get('path') and not allow_open:
         return 'Waiting for the saved project to close. Open a new project in Orca to resume syncing.'
     return ''
 
@@ -51,6 +53,8 @@ class Sync:
         self.process = None
         self.running = False
         self.requested = False
+        self.manual_requested = False
+        self.manual_running = False
         self.phase = 'disabled'
         self.progress = {}
         self.started_at = None
@@ -71,7 +75,8 @@ class Sync:
         enabled = bool(credentials.get('sync_enabled'))
         message = self.message if enabled else ('Stopping sync…' if self.running else 'Sync is off.')
         phase = ('requested' if self.requested else self.phase) if enabled else ('stopping' if self.running else 'disabled')
-        return {'enabled': enabled, 'running': self.running, 'message': message,
+        return {'enabled': enabled, 'running': self.running,
+                'editor_locked': self.manual_requested or self.manual_running, 'message': message,
                 'phase': phase, 'progress': dict(self.progress),
                 'started_at': self.started_at, 'finished_at': self.finished_at,
                 'last_success': self.last_success if identity(credentials) == self.last_identity else None}
@@ -82,6 +87,7 @@ class Sync:
                 raise ValueError('Start syncing before requesting a run.')
             if not self.running:
                 self.requested = True
+                self.manual_requested = True
                 self.message = 'Sync requested. Checking for changes shortly…'
                 self.wake.set()
 
@@ -112,6 +118,7 @@ class Sync:
             if not value:
                 self.interrupt()
                 self.requested = False
+                self.manual_requested = False
                 self.message = 'Sync is off.'
             else:
                 self.requested = True
@@ -163,7 +170,7 @@ class Sync:
         while self.process.poll() is None:
             drain()
             try:
-                guard = project_guard()
+                guard = project_guard(allow_open=self.manual_running)
             except OSError:
                 guard = 'Orca project status is currently unavailable.'
             with self.login.lock:
@@ -193,7 +200,7 @@ class Sync:
             raise RuntimeError(f'Sync failed (code {code}). See the private sync log. Retrying in 30 seconds.')
 
     def run(self, credentials):
-        guard = project_guard()
+        guard = project_guard(allow_open=self.manual_running)
         if guard:
             raise InterruptedError(guard)
         if credentials.get('folder') in (None, '/') or not credentials.get('userId'):
@@ -254,6 +261,8 @@ class Sync:
                 credentials = dict(self.login.credentials or {})
                 enabled = credentials.get('sync_enabled', False)
                 if enabled:
+                    self.manual_running = self.manual_requested
+                    self.manual_requested = False
                     self.requested = False
                     self.running = True
                     self.phase = 'checking'
@@ -273,5 +282,6 @@ class Sync:
                 finally:
                     with self.login.lock:
                         self.running = False
+                        self.manual_running = False
                         self.finished_at = time.time()
             self.wake.wait(30)

@@ -99,8 +99,12 @@ The same supervised Nextcloud backend runs one bisync worker using rclone's
 current official release, installed with SHA256 verification in both images.
 Start/stop is explicit and persistent. A 30-second interval and **Sync now**
 trigger serialized runs; a filesystem lock also guards against a second worker.
-**Sync now** requests an immediate run without enabling a stopped sync or bypassing
-project protection. The UI acknowledges the request immediately and displays
+**Sync now** requests one immediate run, allowing a saved project to remain open
+without enabling a stopped sync. The browser desktop is inert and covered by a
+status overlay until the manual run finishes, fails or fully stops. Closing a
+panel does not remove the overlay. Other tabs using the panel observe the same
+lock through status polling; direct Selkies connections are outside this browser
+input lock. Orca itself is not suspended. The UI acknowledges the request immediately and displays
 requested, preparing, checking, transferring, waiting, idle, error and stopping
 states. Live transfer counts, bytes and speed come from rclone's JSON statistics;
 an indeterminate bar is used until a transfer total is known. Waiting states
@@ -124,11 +128,22 @@ application upload queue are used. Rclone's own temporary download files are
 excluded (`*.partial`), along with `*.part`, `*.tmp` and `*.new`. Local files changing during transfer remain
 subject to rclone's normal source-update checks.
 
-Open saved Orca projects pause the whole sync, including uploads, until a new
+Open saved Orca projects pause automatic sync, including uploads, until a new
 project is opened or Orca exits. Missing/ambiguous live plugin status also pauses
-sync. This is intentionally conservative: it does not try to download into an
-open project or dynamically change bisync filters. Interruptions use SIGINT and
+sync. Manual sync permits an open project but still waits while Orca is busy or
+its live status is unavailable. It synchronizes the saved files on disk;
+unsaved editor changes are not uploaded. Downloaded changes do not update the
+in-memory project automatically; save carefully before starting further edits.
+The manual exception applies to one attempt, including failures, and does not
+change later automatic checks. Interruptions use SIGINT and
 rclone recovery, with forced termination after a grace period. Critical bisync
 lockouts are shown rather than silently issuing a destructive resync. Inspect
 `bisync/<identity>/sync.log` to diagnose them; automatic manual-recovery UI is
 not implemented. Stop sync before choosing a different remote folder.
+
+### Future: reload an open project after sync
+
+Deferred follow-up: if sync downloads a newer version of the currently open
+project file, notify the user and offer to reload it. Preserve unsaved editor
+changes and require the user's decision before replacing the in-memory project.
+Reloading project files is outside the current manual-sync change.
