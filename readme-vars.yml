@@ -167,6 +167,7 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "08.11.26:", desc: "Version panel assets by content to prevent stale scripts leaving desktop input blocked after upgrades."}
   - {date: "07.11.26:", desc: "Use official stable OrcaSlicer AppImages by default and retain optional nightly builds."}
   - {date: "07.11.26:", desc: "Allow manual Nextcloud sync with open projects and block browser desktop input during the run."}
   - {date: "22.10.26:", desc: "Fall back to preserved source imports when project creation fails, including unsupported STEP files."}

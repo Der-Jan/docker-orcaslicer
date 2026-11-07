@@ -128,11 +128,15 @@ location {PREFIX}printer-panel/nextcloud/ {{
     original = web / 'desktop.html'
     if not original.exists():
         original.write_bytes((web / 'index.html').read_bytes())
-    (web / 'index.html').write_bytes(Path('/defaults/printer-panel/index.html').read_bytes())
+    html = Path('/defaults/printer-panel/index.html').read_text()
     assets = web / 'printer-panel'
     assets.mkdir(exist_ok=True)
     for asset in ('panel.css', 'panel.js', 'nextcloud.js'):
-        (assets / asset).write_bytes((Path('/defaults/printer-panel') / asset).read_bytes())
+        content = (Path('/defaults/printer-panel') / asset).read_bytes()
+        (assets / asset).write_bytes(content)
+        version = hashlib.sha256(content).hexdigest()[:16]
+        html = html.replace(f'"{asset}"', f'"{asset}?v={version}"')
+    (web / 'index.html').write_text(html)
 
 
 def main():
