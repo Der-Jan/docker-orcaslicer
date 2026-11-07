@@ -73,13 +73,17 @@ RUN \
     libmspack0 \
     libwebkit2gtk-4.1-0 \
     libwx-perl && \
-  echo "**** install orcaslicer nightly from appimage ****" && \
+  echo "**** install orcaslicer from appimage ****" && \
   if [ -z ${ORCASLICER_VERSION+x} ]; then \
-    ORCASLICER_VERSION=nightly-builds; \
+    ORCASLICER_VERSION=$(curl -fsSL "https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest" | jq -er ".tag_name"); \
   fi && \
   curl -fsSL "https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/tags/${ORCASLICER_VERSION}" -o /tmp/orca-release.json && \
-  DOWNLOAD_URL=$(jq -er 'first(.assets[] | select(.name == "OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_nightly.AppImage") | .browser_download_url)' /tmp/orca-release.json) && \
-  APPIMAGE_SHA256=$(jq -er 'first(.assets[] | select(.name == "OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_nightly.AppImage") | .digest | select(startswith("sha256:")))' /tmp/orca-release.json) && \
+  APPIMAGE_NAME="OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_V${ORCASLICER_VERSION#v}.AppImage" && \
+  if [ "${ORCASLICER_VERSION}" = "nightly-builds" ]; then \
+    APPIMAGE_NAME="OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_nightly.AppImage"; \
+  fi && \
+  DOWNLOAD_URL=$(jq -er --arg name "${APPIMAGE_NAME}" 'first(.assets[] | select(.name == $name) | .browser_download_url)' /tmp/orca-release.json) && \
+  APPIMAGE_SHA256=$(jq -er --arg name "${APPIMAGE_NAME}" 'first(.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")))' /tmp/orca-release.json) && \
   cd /tmp && \
   curl -fsSL "${DOWNLOAD_URL}" -o /tmp/orca.app && \
   printf "%s  orca.app\n" "${APPIMAGE_SHA256#sha256:}" | sha256sum -c - && \
