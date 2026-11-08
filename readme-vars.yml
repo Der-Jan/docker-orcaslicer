@@ -169,6 +169,7 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "08.11.26:", desc: "Group the Device and Nextcloud tabs directly below Restore Orca."}
   - {date: "08.11.26:", desc: "Restore existing Orca windows or relaunch an exited application from the browser."}
   - {date: "08.11.26:", desc: "Collapse the Nextcloud folder browser after selection to keep sync controls accessible."}
   - {date: "08.11.26:", desc: "Version panel assets by content to prevent stale scripts leaving desktop input blocked after upgrades."}

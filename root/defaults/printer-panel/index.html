@@ -8,10 +8,20 @@
   <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <button id="orca-restore" class="edge-tab" title="Restore OrcaSlicer, or start it if it has exited" aria-describedby="orca-restore-status">
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Restore Orca</span>
-  </button>
+  <nav class="edge-tabs" aria-label="Application panels and recovery">
+    <button id="orca-restore" class="edge-tab" title="Restore OrcaSlicer, or start it if it has exited" aria-describedby="orca-restore-status">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Restore Orca</span>
+    </button>
+    <button id="printer-toggle" class="edge-tab" aria-controls="printer-panel" aria-expanded="false" title="Open Device panel">
+      <svg class="device-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="4.5" y1="14.5" x2="14.5" y2="14.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="8.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="10.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="4.5" y1="6.5" x2="7" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="12" y1="6.5" x2="14.5" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><rect x="7.5" y="4.5" width="4" height="5" rx="0.5" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="1.5" y="2.5" width="16" height="15" rx="1" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="9" y="7" width="1" height="1" style="fill:#fff"/></svg>
+      <span>Device</span><span id="tab-arrow" aria-hidden="true">‹</span>
+    </button>
+    <button id="nextcloud-toggle" class="edge-tab" aria-controls="nextcloud-panel" aria-expanded="false" title="Connect to Nextcloud">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5.5 5.5 0 0 1 1 11Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>Nextcloud</span><span id="nextcloud-led" aria-hidden="true"></span>
+    </button>
+  </nav>
   <p id="orca-restore-status" role="status" aria-live="polite" hidden></p>
   <main id="workspace" aria-label="OrcaSlicer" inert>
     <iframe id="desktop-frame" title="OrcaSlicer Desktop" src="../desktop.html" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
@@ -25,10 +35,6 @@
     </div>
   </section>
 
-  <button id="printer-toggle" class="edge-tab" aria-controls="printer-panel" aria-expanded="false" title="Open Device panel">
-    <svg class="device-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="4.5" y1="14.5" x2="14.5" y2="14.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="8.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="10.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="4.5" y1="6.5" x2="7" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="12" y1="6.5" x2="14.5" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><rect x="7.5" y="4.5" width="4" height="5" rx="0.5" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="1.5" y="2.5" width="16" height="15" rx="1" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="9" y="7" width="1" height="1" style="fill:#fff"/></svg>
-    <span>Device</span><span id="tab-arrow" aria-hidden="true">‹</span>
-  </button>
 
   <aside id="printer-panel" aria-label="Device panel" hidden>
     <div id="resize-handle" role="separator" aria-label="Device panel width" aria-orientation="vertical" aria-valuemin="360" aria-valuemax="1200" aria-valuenow="620" tabindex="0"></div>
@@ -46,10 +52,6 @@
     </div>
     <footer><span id="mode-label">Overlay on the slicer</span><a href="device/" target="_blank" rel="noopener">Open in a new tab <span aria-hidden="true">↗</span></a></footer>
   </aside>
-  <button id="nextcloud-toggle" class="edge-tab" aria-controls="nextcloud-panel" aria-expanded="false" title="Connect to Nextcloud">
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5.5 5.5 0 0 1 1 11Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-    <span>Nextcloud</span><span id="nextcloud-led" aria-hidden="true"></span>
-  </button>
   <aside id="nextcloud-panel" aria-label="Nextcloud connection" hidden>
     <header class="panel-header">
       <strong>Nextcloud</strong>
