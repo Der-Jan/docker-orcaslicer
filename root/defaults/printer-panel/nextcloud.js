@@ -10,6 +10,9 @@
   const cancel = document.getElementById('nextcloud-cancel');
   const disconnect = document.getElementById('nextcloud-disconnect');
   const picker = document.getElementById('nextcloud-folder-picker');
+  const folderBrowser = document.getElementById('nextcloud-folder-browser');
+  const folderChange = document.getElementById('nextcloud-folder-change');
+  const folderCancel = document.getElementById('nextcloud-folder-cancel');
   const folderStatus = document.getElementById('nextcloud-folder-status');
   const folderList = document.getElementById('nextcloud-folders');
   const folderSelect = document.getElementById('nextcloud-folder-select');
@@ -25,6 +28,8 @@
   let mutation = 0;
   let syncing = false;
   let folderAccount = null;
+  let selectedFolder = null;
+  let choosingFolder = false;
   let folderPath = '/';
   let folderGeneration = 0;
   let pending = false;
@@ -118,18 +123,42 @@
     folderSelect.disabled = syncing || folderSelect.dataset.loading === 'true';
     document.getElementById('nextcloud-selected-folder').textContent = data.folder ? `Selected folder: ${data.folder}` : 'Choose a folder for your projects.';
     const account = data.connected ? `${data.server}\n${data.user}` : null;
-    if (account !== folderAccount) {
+    if (account !== folderAccount || data.folder !== selectedFolder) {
       folderAccount = account;
+      selectedFolder = data.folder;
       folderGeneration++;
       folderList.replaceChildren();
-      if (account) loadFolders(data.folder || '/');
+      choosingFolder = Boolean(account) && (!data.folder || data.folder === '/');
+      if (choosingFolder) loadFolders(data.folder || '/');
     }
+    renderFolderChooser();
     cancel.hidden = !data.pending;
     if (!data.pending) { login.hidden = true; login.removeAttribute('href'); }
     if (data.server && document.activeElement !== address) address.value = data.server;
     status.textContent = data.connected ? `Connected to ${data.server} as ${data.user}.` : data.message || 'Not connected.';
     if (data.connected && data.message && data.message !== 'Connected to Nextcloud.') status.textContent += ` ${data.message}`;
   }
+  function renderFolderChooser() {
+    const hasFolder = Boolean(selectedFolder && selectedFolder !== '/');
+    folderBrowser.hidden = !choosingFolder;
+    folderChange.hidden = choosingFolder || !hasFolder;
+    folderChange.disabled = syncing;
+    folderChange.title = syncing ? 'Stop syncing before changing the project folder.' : 'Choose a different Nextcloud project folder';
+    folderChange.setAttribute('aria-expanded', String(choosingFolder));
+    folderCancel.hidden = !hasFolder;
+  }
+  folderChange.addEventListener('click', () => {
+    choosingFolder = true;
+    renderFolderChooser();
+    loadFolders(selectedFolder || '/');
+  });
+  folderCancel.addEventListener('click', () => {
+    choosingFolder = false;
+    folderGeneration++;
+    folderList.replaceChildren();
+    renderFolderChooser();
+    folderChange.focus();
+  });
   async function loadFolders(path) {
     const generation = ++folderGeneration;
     folderSelect.disabled = true;
@@ -166,8 +195,12 @@
   folderSelect.addEventListener('click', async () => {
     folderSelect.disabled = true;
     try {
-      render(await api('folder', {path: folderPath}));
-      folderStatus.textContent = 'Project folder saved.';
+      const result = await api('folder', {path: folderPath});
+      choosingFolder = false;
+      folderGeneration++;
+      folderList.replaceChildren();
+      render(result);
+      folderChange.focus();
     } catch (error) { folderStatus.textContent = error.message; }
     finally { folderSelect.disabled = syncing; }
   });

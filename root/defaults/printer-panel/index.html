@@ -64,10 +64,14 @@
       <section id="nextcloud-folder-picker" aria-label="Choose project folder" hidden>
         <h3>Nextcloud project folder</h3>
         <p id="nextcloud-selected-folder"></p>
-        <div class="nextcloud-folder-path"><button id="nextcloud-folder-up" aria-label="Open parent folder">↑</button><span id="nextcloud-folder-path">/</span></div>
-        <p id="nextcloud-folder-status" role="status"></p>
-        <ul id="nextcloud-folders"></ul>
-        <button id="nextcloud-folder-select" disabled>Use this folder</button>
+        <button id="nextcloud-folder-change" aria-controls="nextcloud-folder-browser" aria-expanded="false" hidden>Change folder</button>
+        <div id="nextcloud-folder-browser" hidden>
+          <div class="nextcloud-folder-path"><button id="nextcloud-folder-up" aria-label="Open parent folder">↑</button><span id="nextcloud-folder-path">/</span></div>
+          <p id="nextcloud-folder-status" role="status"></p>
+          <ul id="nextcloud-folders"></ul>
+          <button id="nextcloud-folder-select" disabled>Use this folder</button>
+          <button id="nextcloud-folder-cancel" hidden>Cancel</button>
+        </div>
       </section>
       <section id="nextcloud-sync" hidden>
         <h3>Sync</h3>
