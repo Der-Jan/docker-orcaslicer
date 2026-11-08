@@ -50,6 +50,10 @@ body.resizing #workspace, body.resizing .edge-tab { transition: none; }
 .device-icon { width: 20px; height: 20px; }
 
 #nextcloud-toggle { top: 70%; }
+#orca-restore { top: 16%; z-index: 8; }
+#orca-restore:disabled { cursor: wait; opacity: .75; }
+#orca-restore-status { position: absolute; top: 16%; right: 50px; z-index: 8; width: 300px; max-width: calc(100vw - 64px); margin: 0; padding: 14px; border: 1px solid var(--teal); border-radius: 8px; background: #252e32; line-height: 1.5; }
+#orca-restore-status[data-state="error"] { border-color: #ed8a8a; }
 #nextcloud-led { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #f07171; box-shadow: 0 0 5px #f0717170; }
 #nextcloud-toggle:is([data-status="ready"], [data-status="syncing"]) #nextcloud-led { background: #59d98b; box-shadow: 0 0 5px #59d98b70; }
 #nextcloud-toggle[data-status="syncing"] #nextcloud-led { animation: nextcloud-blink 1.2s ease-in-out infinite; }

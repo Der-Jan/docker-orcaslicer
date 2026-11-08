@@ -1,4 +1,5 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
 
+python3 /usr/local/libexec/orcaslicer_recovery.py || exit 1
 exec /opt/orcaslicer/AppRun --datadir /data/orcaslicer "$@"

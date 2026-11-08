@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import secrets
 import signal
+import subprocess
 import threading
 import time
 from urllib.error import HTTPError
@@ -278,6 +279,23 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(404, {'message': 'Unknown endpoint.'})
 
     def do_POST(self):
+        if self.path == '/restore-orca':
+            if (self.headers.get('X-Orca-Action') != 'restore'
+                    or self.headers.get('Content-Type') != 'application/json'
+                    or self.headers.get('Content-Length') != '2'):
+                self.respond(403, {'message': 'Request not allowed.'})
+                return
+            if self.rfile.read(2) != b'{}':
+                self.respond(400, {'message': 'Invalid recovery request.'})
+                return
+            try:
+                from orcaslicer_recovery import restore
+                self.respond(200, restore())
+            except RuntimeError as error:
+                self.respond(503, {'message': str(error)})
+            except (OSError, ValueError, subprocess.SubprocessError):
+                self.respond(503, {'message': 'Could not restore Orca. No running instance was stopped.'})
+            return
         # A custom header requires a CORS preflight for cross-origin browser requests.
         # We grant no CORS access.
         if self.headers.get('X-Orca-Nextcloud') != '1' or self.headers.get('Content-Type') != 'application/json':

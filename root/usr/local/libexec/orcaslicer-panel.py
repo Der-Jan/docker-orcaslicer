@@ -110,6 +110,14 @@ def initialize():
     config = nginx_path.read_text()
     nextcloud_include = '  include /run/orcaslicer-panel/nextcloud.conf;\n'
     atomic_write(RUNTIME / 'nextcloud.conf', f'''
+location = {PREFIX}printer-panel/restore {{
+    proxy_pass http://127.0.0.1:8093/restore-orca;
+    proxy_set_header Authorization "";
+    proxy_set_header Cookie "";
+    proxy_read_timeout 30s;
+    client_max_body_size 1k;
+    access_log off;
+}}
 location {PREFIX}printer-panel/nextcloud/ {{
     proxy_pass http://127.0.0.1:8093/;
     proxy_set_header Authorization "";
@@ -131,7 +139,7 @@ location {PREFIX}printer-panel/nextcloud/ {{
     html = Path('/defaults/printer-panel/index.html').read_text()
     assets = web / 'printer-panel'
     assets.mkdir(exist_ok=True)
-    for asset in ('panel.css', 'panel.js', 'nextcloud.js'):
+    for asset in ('panel.css', 'panel.js', 'nextcloud.js', 'restore.js'):
         content = (Path('/defaults/printer-panel') / asset).read_bytes()
         (assets / asset).write_bytes(content)
         version = hashlib.sha256(content).hexdigest()[:16]

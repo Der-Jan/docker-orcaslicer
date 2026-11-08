@@ -55,6 +55,8 @@ app_setup_block: |
 
   #### Device panel
 
+  **Restore Orca** remains accessible outside the streamed desktop. It checks for an existing Orca process, brings its window forward if available, and starts Orca in the existing desktop session only when the process has exited. Concurrent requests do not launch additional instances. It never force-restarts a running application or discards unsaved changes; a running instance without an available window is reported instead.
+
   All custom interface text is in English. Follow the [UI requirements](tools/UI-GUIDELINES.md) for future changes.
 
   Open **Device** on the right edge of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser. The camera button opens a camera-only view inside the panel. **Back to Device**, clicking the camera button again, or Escape restores the normal view.
@@ -167,6 +169,7 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "08.11.26:", desc: "Restore existing Orca windows or relaunch an exited application from the browser."}
   - {date: "08.11.26:", desc: "Collapse the Nextcloud folder browser after selection to keep sync controls accessible."}
   - {date: "08.11.26:", desc: "Version panel assets by content to prevent stale scripts leaving desktop input blocked after upgrades."}
   - {date: "07.11.26:", desc: "Use official stable OrcaSlicer AppImages by default and retain optional nightly builds."}

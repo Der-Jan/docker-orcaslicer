@@ -72,7 +72,8 @@ RUN \
     libgstreamer-plugins-bad1.0 \
     libmspack0 \
     libwebkit2gtk-4.1-0 \
-    libwx-perl && \
+    libwx-perl \
+    wlrctl && \
   echo "**** install orcaslicer from appimage ****" && \
   if [ -z ${ORCASLICER_VERSION+x} ]; then \
     ORCASLICER_VERSION=$(curl -fsSL "https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest" | jq -er ".tag_name"); \

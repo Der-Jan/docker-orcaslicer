@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="panel.css">
 </head>
 <body>
+  <button id="orca-restore" class="edge-tab" title="Restore OrcaSlicer, or start it if it has exited" aria-describedby="orca-restore-status">
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Restore Orca</span>
+  </button>
+  <p id="orca-restore-status" role="status" aria-live="polite" hidden></p>
   <main id="workspace" aria-label="OrcaSlicer" inert>
     <iframe id="desktop-frame" title="OrcaSlicer Desktop" src="../desktop.html" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
   </main>
@@ -90,5 +95,6 @@
   </aside>
   <script src="panel.js"></script>
   <script src="nextcloud.js"></script>
+  <script src="restore.js"></script>
 </body>
 </html>
