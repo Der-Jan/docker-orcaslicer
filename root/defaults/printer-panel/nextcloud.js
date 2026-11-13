@@ -40,6 +40,10 @@
     toggle.dataset.status = state;
     toggle.title = `Nextcloud: ${detail}`;
     toggle.setAttribute('aria-label', `Open Nextcloud panel. ${detail}`);
+    const panels = document.getElementById('panels-toggle');
+    panels.dataset.status = state;
+    panels.title = `Panels · Nextcloud: ${detail}`;
+    panels.setAttribute('aria-label', `Panels. Nextcloud: ${detail}`);
   }
   function open(value) {
     if (value) {
@@ -269,9 +273,9 @@
     if (!editorLock.hidden) { event.preventDefault(); event.stopImmediatePropagation(); }
   }, true);
   toggle.addEventListener('click', () => open(panel.hidden));
-  document.getElementById('nextcloud-close').addEventListener('click', () => { open(false); toggle.focus(); });
+  document.getElementById('nextcloud-close').addEventListener('click', () => { open(false); document.getElementById('panels-toggle').focus(); });
   document.addEventListener('orca-device-open', () => open(false));
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) { open(false); toggle.focus(); } });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !panel.hidden) { open(false); document.getElementById('panels-toggle').focus(); } });
   tabStatus('error', 'Connection status is unknown');
   refresh();
   setInterval(refresh, 2000);

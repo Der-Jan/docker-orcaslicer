@@ -4,7 +4,8 @@ Follow the repository's [UI requirements](../UI-GUIDELINES.md) for every change:
 all custom user-facing UI and backend messages must be in English.
 
 The image opens the live Selkies desktop inside a full-page frame and adds a
-collapsible **Device** panel with Fluidd on the right. Its icon is OrcaSlicer's
+collapsible **Device** panel with Fluidd on the right. Open it through the
+**Panels** button near the top-right window controls. Its icon is OrcaSlicer's
 `resources/images/tab_monitor_active.svg`, embedded unchanged in the wrapper. Pin it beside the desktop or drag its
 left edge to resize it. Width and pin preference are stored in the browser.
 
@@ -15,6 +16,13 @@ camera button, or Escape returns to the previous Fluidd view without reloading
 it or replacing the camera stream. This avoids QIDI's site-root navigation
 opening the Selkies desktop inside the printer frame. The handler is attached
 again after profile changes.
+
+The horizontal toolbar expands on hover or click and collapses after an action
+or when the pointer leaves. Its pin button keeps it open, with that preference
+stored in this browser. The collapsed Panels button retains the Nextcloud LED.
+Arrow Down opens the actions for keyboard navigation; Escape closes an unpinned
+row. Narrow screens place the row below the button instead of covering the
+project title or window controls. The toolbar stays accessible during manual sync.
 
 Runtime assets live in `root/defaults/printer-panel/`; the saved-profile watcher
 is `root/usr/local/libexec/orcaslicer-panel.py`. The `init-orcaslicer-panel`
@@ -59,7 +67,7 @@ under this directory rather than stored in `/tmp`.
 
 ## Nextcloud account connection
 
-The separate Nextcloud edge button opens a native panel for Login Flow v2,
+The **Panels → Nextcloud** action opens a native panel for Login Flow v2,
 without embedding Nextcloud. Enter the server's HTTPS base URL and approve the
 login in the tab opened by the button (or use the fallback link).
 `svc-orcaslicer-nextcloud` runs as `abc`, listening only on `127.0.0.1:8093`;

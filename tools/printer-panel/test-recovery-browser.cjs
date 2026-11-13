@@ -24,6 +24,7 @@ const path = require('node:path');
       if (url.pathname.includes('/nextcloud/')) return route.fulfill({json: {
         connected: false, sync: {enabled: true, running: true, phase: 'checking', editor_locked: true}
       }});
+      if (url.pathname.endsWith('/solidcraft')) return route.fulfill({json: {request: null}});
       if (url.pathname === '/desktop.html') { desktopLoads++; return route.fulfill({body: ''}); }
       if (url.pathname.endsWith('/panel.js')) return route.fulfill({body: '', contentType: 'text/javascript'});
       const file = url.pathname === '/' ? 'index.html' : path.basename(url.pathname);
@@ -32,6 +33,8 @@ const path = require('node:path');
     });
     await page.goto('http://recovery.test/');
     await page.waitForFunction(() => !document.getElementById('nextcloud-editor-lock').hidden);
+    await page.locator('#panels-toggle').click();
+    await page.locator('#toolbar-pin').click();
     const button = page.locator('#orca-restore');
     await button.click();
     await page.waitForFunction(() => document.getElementById('orca-restore').disabled);

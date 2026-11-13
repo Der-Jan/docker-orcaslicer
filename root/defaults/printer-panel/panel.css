@@ -13,15 +13,19 @@ button:focus-visible, a:focus-visible, #resize-handle:focus-visible { outline: 2
 .slicer-image { width: 100%; height: 100%; object-fit: contain; }
 .preview-note { position: absolute; bottom: 17px; left: 20px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; border: 1px solid #566265; border-radius: 18px; background: #22292beb; box-shadow: 0 2px 10px #0003; }
 .preview-dot { width: 6px; height: 6px; background: #ddc782; border-radius: 50%; }
-.edge-tabs { position: absolute; top: 16%; right: 0; z-index: 8; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; transition: right .22s ease; }
-.edge-tab { position: relative; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 11px; width: 39px; padding: 15px 7px; color: #dcf3ed; background: #263b3c; border: 1px solid #467471; border-right: 0; border-radius: 12px 0 0 12px; box-shadow: -4px 4px 20px #0003; transition: background .15s; }
-.edge-tab:hover { background: #31504d; }
-.edge-tab span:first-of-type { writing-mode: vertical-rl; font-size: 12px; letter-spacing: .05em; }
+.panel-toolbar { position: absolute; top: 2px; right: 112px; z-index: 8; display: flex; align-items: center; gap: 4px; }
+.toolbar-actions { display: flex; gap: 4px; padding: 0; border-radius: 5px; background: #22292b; box-shadow: 0 2px 8px #0003; }
+.toolbar-actions[hidden] { display: none; }
+.edge-tab, .toolbar-trigger, .toolbar-pin { display: flex; align-items: center; justify-content: center; gap: 6px; height: 28px; padding: 0 8px; color: #dcf3ed; background: #263b3c; border: 1px solid #467471; border-radius: 5px; font-size: 12px; white-space: nowrap; }
+.edge-tab:hover, .toolbar-trigger:hover, .toolbar-pin:hover { background: #31504d; }
+.edge-tab svg { width: 16px; height: 16px; flex-shrink: 0; }
+.toolbar-pin[aria-pressed="true"] { background: #164b43; color: #69e8cc; }
+@media (max-width: 1199px) { .toolbar-actions { position: absolute; top: 32px; right: 0; width: max-content; max-width: calc(100vw - 128px); padding: 4px; flex-wrap: wrap; justify-content: flex-end; border: 1px solid #467471; } }
+@media (max-width: 600px) { .edge-tab span:first-of-type, #tab-arrow { display: none; } }
 .icon-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-#tab-arrow { font-size: 23px; line-height: 14px; color: var(--teal); }
+#tab-arrow { font-size: 14px; color: var(--teal); }
 #printer-panel { position: absolute; inset: 0 0 0 auto; width: var(--panel-width); max-width: calc(100vw - 44px); z-index: 3; background: #1e2428; border-left: 1px solid #405052; box-shadow: -12px 0 40px #0005; }
 #printer-panel:not([hidden]) { display: flex; flex-direction: column; }
-body.panel-open .edge-tabs { right: min(var(--panel-width), calc(100vw - 44px)); }
 body.panel-open.pinned #workspace { right: min(var(--panel-width), calc(100vw - 44px)); }
 .panel-header { flex: 0 0 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #3b454a; background: #252e32; gap: 10px; }
 .printer-identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
@@ -41,7 +45,7 @@ footer a:hover { color: var(--teal); }
 #resize-handle:hover, #resize-handle:focus-visible { background: #19c5ae55; }
 body.resizing, body.resizing * { cursor: col-resize !important; user-select: none; }
 body.resizing iframe { pointer-events: none; }
-body.resizing #workspace, body.resizing .edge-tabs { transition: none; }
+body.resizing #workspace { transition: none; }
 @media (max-width: 600px) { .printer-identity small { font-size: 10px; } .panel-header { padding: 0 10px; } .identity-mark { display: none; } .preview-note { left: 12px; bottom: 12px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
@@ -51,15 +55,15 @@ body.resizing #workspace, body.resizing .edge-tabs { transition: none; }
 .device-icon { width: 20px; height: 20px; }
 
 #orca-restore:disabled { cursor: wait; opacity: .75; }
-#orca-restore-status { position: absolute; top: 16%; right: 50px; z-index: 8; width: 300px; max-width: calc(100vw - 64px); margin: 0; padding: 14px; border: 1px solid var(--teal); border-radius: 8px; background: #252e32; line-height: 1.5; }
+#orca-restore-status { position: absolute; top: 40px; right: 112px; z-index: 7; width: 300px; max-width: calc(100vw - 128px); margin: 0; padding: 14px; border: 1px solid var(--teal); border-radius: 8px; background: #252e32; line-height: 1.5; }
+@media (max-width: 1199px) { .panel-toolbar.toolbar-expanded + #orca-restore-status { top: 76px; } }
 #orca-restore-status[data-state="error"] { border-color: #ed8a8a; }
-#nextcloud-led { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #f07171; box-shadow: 0 0 5px #f0717170; }
-#nextcloud-toggle:is([data-status="ready"], [data-status="syncing"]) #nextcloud-led { background: #59d98b; box-shadow: 0 0 5px #59d98b70; }
-#nextcloud-toggle[data-status="syncing"] #nextcloud-led { animation: nextcloud-blink 1.2s ease-in-out infinite; }
+.nextcloud-led { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #f07171; box-shadow: 0 0 5px #f0717170; }
+[data-status="ready"] > .nextcloud-led, [data-status="syncing"] > .nextcloud-led { background: #59d98b; box-shadow: 0 0 5px #59d98b70; }
+[data-status="syncing"] > .nextcloud-led { animation: nextcloud-blink 1.2s ease-in-out infinite; }
 @keyframes nextcloud-blink { 50% { opacity: .2; } }
-@media (prefers-reduced-motion: reduce) { #nextcloud-led { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .nextcloud-led { animation: none !important; } }
 #nextcloud-panel { position: absolute; inset: 0 0 0 auto; width: 460px; max-width: calc(100vw - 44px); z-index: 6; background: #1e2428; border-left: 1px solid #405052; box-shadow: -12px 0 40px #0005; overflow-y: auto; }
-body.nextcloud-open .edge-tabs { right: min(460px, calc(100vw - 44px)); }
 .nextcloud-content { padding: 24px; line-height: 1.6; }
 .nextcloud-content form { display: flex; flex-direction: column; gap: 12px; }
 .nextcloud-content input { width: 100%; padding: 10px; border: 1px solid #637476; border-radius: 6px; background: #161a1e; color: #eef3f3; font: inherit; }

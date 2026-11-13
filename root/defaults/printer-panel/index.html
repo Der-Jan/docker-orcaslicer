@@ -8,18 +8,24 @@
   <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <nav class="edge-tabs" aria-label="Application panels and recovery">
-    <button id="orca-restore" class="edge-tab" title="Restore OrcaSlicer, or start it if it has exited" aria-describedby="orca-restore-status">
-      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Restore Orca</span>
-    </button>
-    <button id="printer-toggle" class="edge-tab" aria-controls="printer-panel" aria-expanded="false" title="Open Device panel">
-      <svg class="device-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="4.5" y1="14.5" x2="14.5" y2="14.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="8.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="10.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="4.5" y1="6.5" x2="7" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="12" y1="6.5" x2="14.5" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><rect x="7.5" y="4.5" width="4" height="5" rx="0.5" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="1.5" y="2.5" width="16" height="15" rx="1" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="9" y="7" width="1" height="1" style="fill:#fff"/></svg>
-      <span>Device</span><span id="tab-arrow" aria-hidden="true">‹</span>
-    </button>
-    <button id="nextcloud-toggle" class="edge-tab" aria-controls="nextcloud-panel" aria-expanded="false" title="Connect to Nextcloud">
-      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5.5 5.5 0 0 1 1 11Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-      <span>Nextcloud</span><span id="nextcloud-led" aria-hidden="true"></span>
+  <nav id="panel-toolbar" class="panel-toolbar" aria-label="Application panels and recovery">
+    <div id="toolbar-actions" class="toolbar-actions" hidden>
+      <button id="printer-toggle" class="edge-tab" aria-controls="printer-panel" aria-expanded="false" title="Open Device panel">
+        <svg class="device-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><line x1="4.5" y1="14.5" x2="14.5" y2="14.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="8.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="10.5" y1="9.5" x2="9.5" y2="11.5" style="fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round"/><line x1="4.5" y1="6.5" x2="7" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><line x1="12" y1="6.5" x2="14.5" y2="6.5" style="fill:none;stroke:#fff;stroke-linecap:square;stroke-miterlimit:10"/><rect x="7.5" y="4.5" width="4" height="5" rx="0.5" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="1.5" y="2.5" width="16" height="15" rx="1" style="fill:none;stroke:#fff;stroke-miterlimit:10"/><rect x="9" y="7" width="1" height="1" style="fill:#fff"/></svg>
+        <span>Device</span><span id="tab-arrow" aria-hidden="true">‹</span>
+      </button>
+      <button id="nextcloud-toggle" class="edge-tab" aria-controls="nextcloud-panel" aria-expanded="false" title="Connect to Nextcloud">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5.5 5.5 0 0 1 1 11Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span>Nextcloud</span><span id="nextcloud-led" class="nextcloud-led" aria-hidden="true"></span>
+      </button>
+      <button id="orca-restore" class="edge-tab" title="Restore OrcaSlicer, or start it if it has exited" aria-describedby="orca-restore-status">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Restore Orca</span>
+      </button>
+      <button id="toolbar-pin" class="toolbar-pin" aria-label="Keep toolbar open" aria-pressed="false" title="Keep toolbar open"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3 8 0-1 7 4 4H5l4-4ZM12 14v7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <button id="panels-toggle" class="toolbar-trigger" aria-controls="toolbar-actions" aria-expanded="false" title="Panels">
+      <span>Panels</span><span id="panels-led" class="nextcloud-led" aria-hidden="true"></span>
     </button>
   </nav>
   <p id="orca-restore-status" role="status" aria-live="polite" hidden></p>
@@ -95,6 +101,7 @@
       <p class="nextcloud-note">Your connection, folder selection and sync setting are kept across restarts.</p>
     </div>
   </aside>
+  <script src="toolbar.js"></script>
   <script src="panel.js"></script>
   <script src="nextcloud.js"></script>
   <script src="restore.js"></script>

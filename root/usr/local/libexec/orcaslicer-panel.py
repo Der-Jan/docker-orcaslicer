@@ -139,7 +139,7 @@ location {PREFIX}printer-panel/nextcloud/ {{
     html = Path('/defaults/printer-panel/index.html').read_text()
     assets = web / 'printer-panel'
     assets.mkdir(exist_ok=True)
-    for asset in ('panel.css', 'panel.js', 'nextcloud.js', 'restore.js'):
+    for asset in ('panel.css', 'panel.js', 'nextcloud.js', 'restore.js', 'toolbar.js'):
         content = (Path('/defaults/printer-panel') / asset).read_bytes()
         (assets / asset).write_bytes(content)
         version = hashlib.sha256(content).hexdigest()[:16]

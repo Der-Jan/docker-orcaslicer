@@ -22,6 +22,7 @@ const path = require('node:path');
       }
       if (name === '/desktop.html') return route.fulfill({contentType: 'text/html', body:
         '<button id="input">Desktop input</button><script>window.inputs=0; document.addEventListener("keydown",()=>inputs++); document.addEventListener("click",()=>inputs++);</script>'});
+      if (name.endsWith('/solidcraft')) return route.fulfill({json: {request: null}});
       if (name.endsWith('/panel.js')) return route.fulfill({contentType: 'text/javascript', body: ''});
       const file = name === '/' ? 'index.html' : path.basename(name);
       return route.fulfill({contentType: file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html',
@@ -29,6 +30,7 @@ const path = require('node:path');
     });
     await page.goto('http://manual-sync.test/');
     await page.waitForFunction(() => !document.getElementById('workspace').inert);
+    await page.locator('#panels-toggle').click();
     await page.locator('#nextcloud-toggle').click();
     await page.locator('#nextcloud-sync-now').click();
     await page.waitForFunction(() => document.getElementById('workspace').inert);
@@ -57,6 +59,7 @@ const path = require('node:path');
     sync = {enabled: false, running: false, phase: 'disabled', editor_locked: false};
     await page.waitForFunction(() => !document.getElementById('workspace').inert);
     sync = {enabled: true, running: false, phase: 'idle', editor_locked: false};
+    await page.locator('#panels-toggle').click();
     await page.locator('#nextcloud-toggle').click();
     await page.locator('#nextcloud-sync-now').click();
     sync = {enabled: true, running: false, phase: 'error', editor_locked: false, message: 'Cloud unavailable.'};

@@ -86,7 +86,7 @@ function openPanel(open) {
   document.getElementById('tab-arrow').textContent = open ? '›' : '‹';
   document.body.classList.toggle('panel-open', open);
   if (open && printerReady && frame.getAttribute('src') === 'about:blank') frame.src = 'device/';
-  if (!open) toggle.focus();
+  if (!open) document.getElementById('panels-toggle').focus();
 }
 toggle.addEventListener('click', () => openPanel(panel.hidden));
 document.getElementById('close').addEventListener('click', () => openPanel(false));

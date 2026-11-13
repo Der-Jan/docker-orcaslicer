@@ -55,11 +55,13 @@ app_setup_block: |
 
   #### Device panel
 
+  The **Panels** button sits near the top-right window controls. Hover over it or click it to reveal a horizontal row of actions. The row collapses after an action or when the pointer leaves; **Keep toolbar open** pins it until unpinned. The pin preference is saved in this browser. The Panels button retains the Nextcloud status LED when collapsed. Keyboard users can open it with Enter or Arrow Down and dismiss an unpinned toolbar with Escape. On smaller screens the row opens below the button.
+
   **Restore Orca** remains accessible outside the streamed desktop. It checks for an existing Orca process, brings its window forward if available, and starts Orca in the existing desktop session only when the process has exited. Concurrent requests do not launch additional instances. It never force-restarts a running application or discards unsaved changes; a running instance without an available window is reported instead.
 
   All custom interface text is in English. Follow the [UI requirements](tools/UI-GUIDELINES.md) for future changes.
 
-  Open **Device** on the right edge of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser. The camera button opens a camera-only view inside the panel. **Back to Device**, clicking the camera button again, or Escape restores the normal view.
+  Open **Panels → Device** at the top of the browser desktop to show the printer's live Fluidd interface. The button uses the same label and icon as OrcaSlicer's Device tab. Overlay the desktop, pin the panel beside it, or drag its left edge to resize it. Width and pin preference are saved in the browser. The camera button opens a camera-only view inside the panel. **Back to Device**, clicking the camera button again, or Escape restores the normal view.
 
   The panel follows the selected machine's saved `print_host` and `printhost_apikey` in OrcaSlicer, checking every two seconds. Save the printer address and API key in Orca's printer connection settings. The container injects the key into Moonraker HTTP and WebSocket requests; it is not included in browser configuration or metadata. Browser forwarding headers are removed from Moonraker requests. Changes to the saved profile or key close the previous connection and reload the panel. Missing or ambiguous profiles show a status message.
 
@@ -71,7 +73,7 @@ app_setup_block: |
 
   After login, select the Nextcloud directory for your projects: open folders in the panel, use the up arrow to return to the parent, and confirm **Use this folder**. The panel lists existing folders through WebDAV, using Nextcloud's actual account ID even when you sign in with an email address. The chosen directory is stored with the connection, remains available after restarts, and can be changed at any time. No files are synchronized or moved by this selection.
 
-  Open **Nextcloud** on the right edge of the browser desktop, enter your Nextcloud HTTPS address (including its subdirectory if applicable), and choose **Connect to Nextcloud**. Login Flow v2 opens Nextcloud in a separate browser tab for login and access approval, including your configured SSO or two-factor authentication. If the tab is blocked, use the displayed login link. The server must be reachable from both the browser and container with a valid TLS certificate. Reverse proxies must permit Nextcloud's `/index.php/login/v2` and polling endpoints without requiring a separate proxy login from the container.
+  Open **Panels → Nextcloud** at the top of the browser desktop, enter your Nextcloud HTTPS address (including its subdirectory if applicable), and choose **Connect to Nextcloud**. Login Flow v2 opens Nextcloud in a separate browser tab for login and access approval, including your configured SSO or two-factor authentication. If the tab is blocked, use the displayed login link. The server must be reachable from both the browser and container with a valid TLS certificate. Reverse proxies must permit Nextcloud's `/index.php/login/v2` and polling endpoints without requiring a separate proxy login from the container.
 
   The backend runs as `abc`, stores the connection and folder selection in `/data/orcaslicer/nextcloud/credentials.json` (directory mode `0700`, file mode `0600`), and exposes status through the existing authenticated browser entrypoint. App passwords and polling tokens are not returned to the browser. **Disconnect** stops synchronization, removes the local credentials, and attempts to revoke the app password in Nextcloud; if the server is unreachable, revoke it manually under Nextcloud's security settings. See [Nextcloud Login Flow v2](https://docs.nextcloud.com/server/stable/developer_manual/client_apis/LoginFlow/index.html#login-flow-v2).
 
@@ -169,6 +171,7 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "13.11.26:", desc: "Replace vertical panel tabs with a collapsible horizontal toolbar and persistent pin preference."}
   - {date: "08.11.26:", desc: "Group the Device and Nextcloud tabs directly below Restore Orca."}
   - {date: "08.11.26:", desc: "Restore existing Orca windows or relaunch an exited application from the browser."}
   - {date: "08.11.26:", desc: "Collapse the Nextcloud folder browser after selection to keep sync controls accessible."}
