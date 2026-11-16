@@ -62,9 +62,24 @@ const path = require('node:path');
     await page.locator('#panels-toggle').click();
     await page.locator('#nextcloud-toggle').click();
     await page.locator('#nextcloud-sync-now').click();
-    sync = {enabled: true, running: false, phase: 'error', editor_locked: false, message: 'Cloud unavailable.'};
+    sync = {enabled: true, running: false, phase: 'error', editor_locked: false, message: 'Cloud unavailable.',
+      last_error: {time: Date.now() / 1000, message: 'Filename encoding mismatch: Lüfterauslass <model>'}};
     await page.waitForFunction(() => !document.getElementById('workspace').inert);
     assert.equal(await page.locator('#nextcloud-editor-lock').isVisible(), false);
+    const error = page.locator('#nextcloud-sync-error');
+    await error.waitFor({state: 'visible'});
+    assert.match(await error.textContent(), /Lüfterauslass <model>/);
+    assert.equal(await error.locator('model').count(), 0);
+    sync.phase = 'waiting'; sync.message = 'Waiting for the saved project to close.';
+    await page.waitForFunction(() => document.getElementById('nextcloud-sync-status').textContent.includes('Waiting for the saved project'));
+    assert.equal(await error.isVisible(), true);
+    assert.equal(await page.locator('#panels-toggle').getAttribute('data-status'), 'error');
+    await page.reload();
+    await page.locator('#panels-toggle').click();
+    await page.locator('#nextcloud-toggle').click();
+    await error.waitFor({state: 'visible'});
+    sync = {enabled: true, running: false, phase: 'idle', editor_locked: false, last_error: null};
+    await error.waitFor({state: 'hidden'});
     console.log('Manual sync: input/drop overlay, keyboard isolation, panel close, reload, offline polling, stop and failure release passed.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

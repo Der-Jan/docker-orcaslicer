@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prepare uploaded models as named Orca projects, then use the native drop helper."""
 import argparse
+import fcntl
 import json
 import logging
 import os
@@ -183,6 +184,12 @@ def build_project(source, project, reply, directory, cli, log_path):
                 root.insert(0, entry)
             entry.text = f'{entry.text}\n{value}' if name == 'Description' and entry.text else value
         replacements['3D/3dmodel.model'] = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+        if 'Metadata/model_settings.config' in model.namelist():
+            links = ET.fromstring(model.read('Metadata/model_settings.config'))
+            for metadata in links.findall('.//metadata[@key="source_file"]'):
+                if Path(metadata.get('value', '')).name == source.name:
+                    metadata.set('value', str(source.absolute()))
+            replacements['Metadata/model_settings.config'] = ET.tostring(links, encoding='utf-8', xml_declaration=True)
         staging = project.with_suffix('.part')
         with zipfile.ZipFile(staging, 'w', compression=zipfile.ZIP_DEFLATED) as output:
             for name in model.namelist():
@@ -265,6 +272,8 @@ def main():
     logging.basicConfig(level=logging.INFO, format='[project-drop] %(message)s')
     signal.signal(signal.SIGTERM, lambda signum, frame: (_ for _ in ()).throw(SystemExit(143)))
     try:
+        operation = (STATE_ROOT / 'operation.lock').open('a')
+        fcntl.flock(operation, fcntl.LOCK_EX | fcntl.LOCK_NB)
         source = args.source.absolute()
         if not stat.S_ISREG(source.lstat().st_mode) or not source.stat().st_size:
             raise RuntimeError('The upload must be a nonempty regular file')

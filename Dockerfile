@@ -57,6 +57,7 @@ RUN \
   DEBIAN_FRONTEND=noninteractive \
   apt-get install --no-install-recommends -y \
     firefox \
+    git \
     gstreamer1.0-alsa \
     gstreamer1.0-gl \
     gstreamer1.0-gtk3 \
@@ -104,9 +105,10 @@ RUN \
   if [ -z ${SUPPORT_FINS_VERSION+x} ]; then \
     SUPPORT_FINS_VERSION=$(curl -fsSL "https://api.github.com/repos/gittrahan/support-fins/commits/main" | jq -er '.sha'); \
   fi && \
-  mkdir -p /build/support-fins /build/esbuild && \
-  curl -fsSL "https://github.com/gittrahan/support-fins/archive/${SUPPORT_FINS_VERSION}.tar.gz" -o /build/support-fins.tar.gz && \
-  tar -xzf /build/support-fins.tar.gz --strip-components=1 -C /build/support-fins && \
+  mkdir -p /build/esbuild && \
+  git clone --quiet https://github.com/gittrahan/support-fins.git /build/support-fins && \
+  git -C /build/support-fins checkout --quiet --detach "${SUPPORT_FINS_VERSION}" && \
+  SUPPORT_FINS_VERSION=$(git -C /build/support-fins rev-parse HEAD) && \
   curl -fsSL "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.0.tgz" -o /build/esbuild.tar.gz && \
   tar -xzf /build/esbuild.tar.gz --strip-components=1 -C /build/esbuild && \
   ESBUILD=/build/esbuild/bin/esbuild python3 /build/support-fins/plugins/orca/build.py && \
@@ -124,7 +126,7 @@ RUN \
   install -m644 /build/plugin-requirements.txt /usr/local/share/orcaslicer/plugins/SupportFins/requirements.txt && \
   sed -i 's/^# dependencies = .*/# dependencies = []/' /usr/local/share/orcaslicer/plugins/SupportFins/support_fins_orca.py && \
   sed -i '/^    import numpy as np$/a\    import numpy.ma\n    import numpy.linalg' /usr/local/share/orcaslicer/plugins/SupportFins/support_fins_orca.py && \
-  rm -rf /build/support-fins /build/esbuild /build/support-fins.tar.gz /build/esbuild.tar.gz /build/plugin-requirements.txt && \
+  rm -rf /build/support-fins /build/esbuild /build/esbuild.tar.gz /build/plugin-requirements.txt && \
   localedef -i en_GB -f UTF-8 en_GB.UTF-8 && \
   chmod +x /opt/orcaslicer/libexec/orca-slicer-env && \
   echo "**** configure orcaslicer window decorations ****" && \

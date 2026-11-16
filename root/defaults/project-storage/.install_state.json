@@ -11,7 +11,15 @@
       "/run/orcaslicer-project-storage/4/request.json",
       "/run/orcaslicer-project-storage/5/request.json",
       "/run/orcaslicer-project-storage/6/request.json",
-      "/run/orcaslicer-project-storage/7/request.json"
+      "/run/orcaslicer-project-storage/7/request.json",
+      "/run/orcaslicer-project-storage/0/solidcraft.json",
+      "/run/orcaslicer-project-storage/1/solidcraft.json",
+      "/run/orcaslicer-project-storage/2/solidcraft.json",
+      "/run/orcaslicer-project-storage/3/solidcraft.json",
+      "/run/orcaslicer-project-storage/4/solidcraft.json",
+      "/run/orcaslicer-project-storage/5/solidcraft.json",
+      "/run/orcaslicer-project-storage/6/solidcraft.json",
+      "/run/orcaslicer-project-storage/7/solidcraft.json"
     ],
     "fs_readwrite": [
       "/run/orcaslicer-project-storage/pending.json",
@@ -70,7 +78,23 @@
       "/run/orcaslicer-project-storage/7/request.json",
       "/run/orcaslicer-project-storage/7/reply.json",
       "/run/orcaslicer-project-storage/7/reply.part",
-      "/run/orcaslicer-project-storage/7/template.3mf"
+      "/run/orcaslicer-project-storage/7/template.3mf",
+      "/run/orcaslicer-project-storage/0/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/0/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/1/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/1/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/2/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/2/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/3/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/3/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/4/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/4/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/5/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/5/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/6/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/6/solidcraft-request.part",
+      "/run/orcaslicer-project-storage/7/solidcraft-request.json",
+      "/run/orcaslicer-project-storage/7/solidcraft-request.part"
     ]
   }
 }

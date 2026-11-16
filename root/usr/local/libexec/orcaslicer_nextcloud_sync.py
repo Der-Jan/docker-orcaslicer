@@ -9,6 +9,9 @@ import signal
 import subprocess
 import threading
 import time
+import re
+import unicodedata
+from collections import deque
 from urllib.parse import quote
 
 PROJECTS = Path('/config/Projects')
@@ -16,8 +19,34 @@ CHECK = '.orcaslicer-sync-check'
 EXCLUDES = ['*.part', '*.partial', '*.tmp', '*.new']
 
 
+def error_summary(lines, secrets=()):
+    messages, names = [], {}
+    for line in lines:
+        message = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', line)
+        for secret in secrets:
+            if secret:
+                message = message.replace(secret, '[redacted]')
+        message = re.sub(r'https?://[^\s<>"\']+', '[server URL]', message)
+        message = re.sub(r'(?i)(authorization\s*[:=]\s*)(?:basic|bearer)\s+\S+', r'\1[redacted]', message)
+        message = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', ' ', message).strip()
+        match = re.search(r'Path[12] file not found in Path[12]\s+-\s+(.*)', message)
+        if match:
+            name = match[1].strip()
+            canonical = unicodedata.normalize('NFC', name)
+            if canonical in names and names[canonical] != name:
+                return f'Filename encoding mismatch between local files and Nextcloud: {canonical[:300]}. Both sides could not be verified as matching.'
+            names[canonical] = name
+        if (message and not message.startswith(('Bisync aborted', 'Failed to bisync: bisync aborted'))
+                and message not in messages):
+            messages.append(message.replace('Path1', 'Local').replace('Path2', 'Nextcloud'))
+    return '\n'.join(message[:600] for message in messages[:3]) or 'The sync process returned no detailed error.'
+
+
 def identity(credentials):
-    return hashlib.sha256(json.dumps([credentials.get('server'), credentials.get('userId'), credentials.get('folder'), EXCLUDES]).encode()).hexdigest()[:24]
+    parts = [credentials.get('server'), credentials.get('userId'), credentials.get('folder'), EXCLUDES]
+    if credentials.get('_managed_projects'):
+        parts.append(credentials['_managed_projects'])
+    return hashlib.sha256(json.dumps(parts).encode()).hexdigest()[:24]
 
 
 def project_guard(allow_open=False):
@@ -62,6 +91,7 @@ class Sync:
         self.message = 'Sync is off.'
         self.last_success = None
         self.last_identity = None
+        self.last_error = None
         try:
             previous = json.loads((login.directory / 'last-success.json').read_text())
             self.last_success = previous['time']
@@ -69,9 +99,21 @@ class Sync:
         except (OSError, ValueError, KeyError):
             pass
         self.thread = threading.Thread(target=self.loop, daemon=True)
+        try:
+            error = json.loads((login.directory / 'last-error.json').read_text())
+            if (isinstance(error, dict) and isinstance(error.get('message'), str)
+                    and isinstance(error.get('time'), (int, float))
+                    and not (error.get('identity') == self.last_identity and self.last_success
+                             and self.last_success >= error['time'])):
+                self.last_error = error
+        except (OSError, ValueError):
+            pass
 
     def status(self):
         credentials = self.login.credentials or {}
+        handoff = getattr(self.login, 'handoff', None)
+        if handoff:
+            credentials = dict(credentials, _managed_projects=handoff.project_names())
         enabled = bool(credentials.get('sync_enabled'))
         message = self.message if enabled else ('Stopping sync…' if self.running else 'Sync is off.')
         phase = ('requested' if self.requested else self.phase) if enabled else ('stopping' if self.running else 'disabled')
@@ -79,7 +121,31 @@ class Sync:
                 'editor_locked': self.manual_requested or self.manual_running, 'message': message,
                 'phase': phase, 'progress': dict(self.progress),
                 'started_at': self.started_at, 'finished_at': self.finished_at,
-                'last_success': self.last_success if identity(credentials) == self.last_identity else None}
+                'last_success': self.last_success if identity(credentials) == self.last_identity else None,
+                'last_error': self.last_error if self.last_error and self.last_error.get('identity') == identity(credentials) else None}
+
+    def record_error(self, message):
+        credentials = dict(self.login.credentials or {})
+        handoff = getattr(self.login, 'handoff', None)
+        if handoff:
+            credentials['_managed_projects'] = handoff.project_names()
+        message = error_summary([message], [credentials.get('appPassword', '')])
+        self.last_error = {'message': message, 'time': time.time(), 'identity': identity(credentials)}
+        try:
+            path = self.login.directory / 'last-error.new'
+            with path.open('w') as stream:
+                os.chmod(path, 0o600)
+                json.dump(self.last_error, stream)
+            path.replace(self.login.directory / 'last-error.json')
+        except OSError:
+            pass  # error reporting must not stop the worker
+
+    def clear_error(self):
+        self.last_error = None
+        try:
+            (self.login.directory / 'last-error.json').unlink(missing_ok=True)
+        except OSError:
+            pass
 
     def request_now(self):
         with self.login.lock:
@@ -148,6 +214,18 @@ class Sync:
         output = self.process.stdout
         os.set_blocking(output.fileno(), False)
         pending = b''
+        errors = deque(maxlen=32)
+
+        def record(line):
+            log.write(line + '\n')
+            self.update_progress(line)
+            try:
+                item = json.loads(line)
+                if str(item.get('level', '')).lower() in ('error', 'critical', 'fatal'):
+                    errors.append(str(item.get('msg', item.get('message', ''))))
+            except (ValueError, AttributeError):
+                if re.search(r'(?i)\berror\b|\bfailed\b|\bdenied\b', line):
+                    errors.append(line)
 
         def drain():
             nonlocal pending
@@ -162,8 +240,7 @@ class Sync:
                 while b'\n' in pending:
                     line, pending = pending.split(b'\n', 1)
                     text = line.decode('utf-8', errors='replace')
-                    log.write(text + '\n')
-                    self.update_progress(text)
+                    record(text)
             log.flush()
         interruption = None
         start = time.monotonic()
@@ -187,8 +264,7 @@ class Sync:
         drain()
         if pending:
             text = pending.decode('utf-8', errors='replace')
-            log.write(text)
-            self.update_progress(text)
+            record(text)
         output.close()
         with self.login.lock:
             self.process = None
@@ -197,9 +273,29 @@ class Sync:
                 raise TimeoutError(interruption)
             raise InterruptedError(interruption)
         if code:
-            raise RuntimeError(f'Sync failed (code {code}). See the private sync log. Retrying in 30 seconds.')
+            secrets = [(self.login.credentials or {}).get('appPassword', ''), environment.get('RCLONE_CONFIG_NEXTCLOUD_PASS', '')]
+            raise RuntimeError(f'Sync failed (code {code}): {error_summary(errors, secrets)}')
 
     def run(self, credentials):
+        with (self.login.directory / 'sync.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            handoff = getattr(self.login, 'handoff', None)
+            if handoff:
+                from orcaslicer_handoff import Failure
+                credentials = dict(credentials, _managed_projects=handoff.project_names())
+                # Both engines hold the same lock; they can never write one folder concurrently.
+                guard = project_guard(allow_open=self.manual_running)
+                if guard:
+                    raise InterruptedError(guard)
+                try:
+                    dedicated = handoff.credentials()
+                    if dedicated:
+                        handoff.sync_owned(dedicated)
+                except Failure as error:
+                    raise RuntimeError(error.message) from None
+            return self.run_legacy(credentials)
+
+    def run_legacy(self, credentials):
         guard = project_guard(allow_open=self.manual_running)
         if guard:
             raise InterruptedError(guard)
@@ -221,9 +317,8 @@ class Sync:
                            RCLONE_CONFIG_NEXTCLOUD_URL=credentials['server'] + '/remote.php/dav/files/' + quote(credentials['userId'], safe='') + '/',
                            RCLONE_CONFIG_NEXTCLOUD_USER=credentials['loginName'], RCLONE_CONFIG_NEXTCLOUD_PASS=obscured)
         remote = 'nextcloud:' + credentials['folder'].lstrip('/')
-        with (self.login.directory / 'sync.lock').open('a') as lock, (directory / 'sync.log').open('w') as log:
+        with (directory / 'sync.log').open('w') as log:
             os.chmod(log.name, 0o600)
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if first:
                 self.phase = 'preparing'
                 self.message = 'Preparing the first sync…'
@@ -240,6 +335,10 @@ class Sync:
                          '--retries', '1', '--low-level-retries', '1', '--contimeout', '10s', '--timeout', '60s', '-v']
             for pattern in EXCLUDES:
                 arguments.extend(['--exclude', pattern])
+            if credentials.get('_managed_projects'):
+                from orcaslicer_handoff import legacy_exclusion
+                for project in credentials['_managed_projects']:
+                    arguments.extend(['--exclude', legacy_exclusion(project)])
             if first:
                 # Preserve remote files overwritten by the initial merge, outside the selected folder.
                 history = 'nextcloud:.orcaslicer-sync-history/' + key + '/' + time.strftime('%Y%m%d-%H%M%S')
@@ -273,12 +372,15 @@ class Sync:
             if enabled:
                 try:
                     self.run(credentials)
+                    self.clear_error()
                 except InterruptedError as error:
                     self.phase = 'waiting'
                     self.message = str(error)
                 except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
                     self.phase = 'error'
                     self.message = str(error) if not isinstance(error, subprocess.SubprocessError) else 'Could not start the sync process.'
+                    self.record_error(self.message)
+                    self.message = self.last_error['message']
                 finally:
                     with self.login.lock:
                         self.running = False

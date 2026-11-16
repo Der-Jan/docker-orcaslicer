@@ -55,6 +55,10 @@ body.resizing #workspace { transition: none; }
 .device-icon { width: 20px; height: 20px; }
 
 #orca-restore:disabled { cursor: wait; opacity: .75; }
+#solidcraft-return { position: absolute; left: 20px; bottom: 20px; z-index: 9; max-width: min(420px, calc(100vw - 80px)); padding: 16px; border: 1px solid var(--teal); border-radius: 8px; background: #252e32; overflow-wrap: anywhere; }
+#solidcraft-return p { font-size: 12px; color: #b9c8ca; }
+#solidcraft-return a { color: var(--teal); margin-right: 16px; }
+#solidcraft-return button { background: transparent; color: #dcf3ed; border: 1px solid #637476; border-radius: 4px; padding: 5px 10px; }
 #orca-restore-status { position: absolute; top: 40px; right: 112px; z-index: 7; width: 300px; max-width: calc(100vw - 128px); margin: 0; padding: 14px; border: 1px solid var(--teal); border-radius: 8px; background: #252e32; line-height: 1.5; }
 @media (max-width: 1199px) { .panel-toolbar.toolbar-expanded + #orca-restore-status { top: 76px; } }
 #orca-restore-status[data-state="error"] { border-color: #ed8a8a; }
@@ -83,5 +87,6 @@ body.resizing #workspace { transition: none; }
 #nextcloud-sync-activity[data-phase="waiting"] #nextcloud-sync-indicator { background: #ddc782; border-color: #ddc782; }
 #nextcloud-sync-activity:is([data-phase="requested"], [data-phase="checking"], [data-phase="preparing"], [data-phase="transferring"], [data-phase="stopping"]) #nextcloud-sync-indicator { border-color: #467471; border-top-color: var(--teal); animation: sync-spin 1s linear infinite; }
 #nextcloud-sync-progress { width: 100%; accent-color: var(--teal); }
+#nextcloud-sync-error { color: #ed8a8a; white-space: pre-wrap; overflow-wrap: anywhere; }
 @keyframes sync-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { #nextcloud-sync-indicator { animation: none !important; } }

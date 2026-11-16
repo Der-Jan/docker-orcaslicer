@@ -189,6 +189,7 @@ class ProjectStorageTests(unittest.TestCase):
         def export_geometry(*args, **kwargs):
             with zipfile.ZipFile(directory / 'geometry.3mf', 'w') as archive:
                 archive.writestr('Metadata/project_settings.config', '{}')
+                archive.writestr('Metadata/model_settings.config', '<config><object><part><metadata key="source_file" value="part.stl"/></part></object></config>')
                 archive.writestr('3D/3dmodel.model', f'<model xmlns="{namespace}"><resources><object id="1"><mesh><vertices><vertex x="0" y="0" z="0"/><vertex x="1" y="0" z="0"/><vertex x="0" y="1" z="0"/></vertices><triangles><triangle v1="0" v2="1" v3="2"/></triangles></mesh></object></resources><build><item objectid="1"/></build></model>')
             return 0
 
@@ -201,6 +202,8 @@ class ProjectStorageTests(unittest.TestCase):
             self.assertEqual(metadata['Title'], 'Named project')
             self.assertEqual(metadata['Description'], 'Original model: Sources/part.stl')
             self.assertIsNotNone(root.find('.//{*}triangle'))
+            links = ET.fromstring(archive.read('Metadata/model_settings.config'))
+            self.assertEqual(links.find('.//metadata[@key="source_file"]').get('value'), str(source.absolute()))
         self.assertFalse(target.with_suffix('.part').exists())
 
 

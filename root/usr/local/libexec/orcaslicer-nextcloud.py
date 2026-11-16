@@ -273,7 +273,14 @@ class Handler(BaseHTTPRequestHandler):
             pass  # browser closed or reloaded after the operation completed
 
     def do_GET(self):
-        if self.path == '/status':
+        if self.path == '/solidcraft':
+            try:
+                self.respond(200, self.server.solidcraft.status())
+            except (OSError, ValueError):
+                self.respond(503, {'message': 'SolidCraft source links are temporarily unavailable.'})
+        elif self.path.startswith('/handoff/'):
+            self.handoff('GET')
+        elif self.path == '/status':
             self.respond(200, self.server.login.status())
         else:
             self.respond(404, {'message': 'Unknown endpoint.'})
@@ -295,6 +302,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(503, {'message': str(error)})
             except (OSError, ValueError, subprocess.SubprocessError):
                 self.respond(503, {'message': 'Could not restore Orca. No running instance was stopped.'})
+            return
+        if self.path.startswith('/handoff/'):
+            self.handoff('POST')
             return
         # A custom header requires a CORS preflight for cross-origin browser requests.
         # We grant no CORS access.
@@ -339,11 +349,44 @@ class Handler(BaseHTTPRequestHandler):
         except (OSError, KeyError):
             self.respond(502, {'message': 'Nextcloud could not be reached or returned an invalid response.'})
 
+    def handoff(self, method):
+        from orcaslicer_handoff import Failure, account_ref
+        service = self.server.login.handoff
+        if not service.authorized(self.headers.get('Authorization')):
+            self.respond(401, {'code': 'authentication', 'message': 'A valid handoff bearer token is required.'})
+            return
+        try:
+            if method == 'GET' and self.path == '/handoff/account':
+                credentials = service.credentials()
+                self.respond(200, {'version': 1, 'account': account_ref(credentials),
+                                   'root': (credentials or {}).get('folder'),
+                                   'capabilities': {'open': True, 'refresh': False, 'save': 'manual'}})
+            elif method == 'GET' and self.path.startswith('/handoff/requests/'):
+                self.respond(200, service.status(self.path[len('/handoff/requests/'):]))
+            elif method == 'POST' and self.path == '/handoff/requests':
+                if self.headers.get('Content-Type') != 'application/json':
+                    raise ValueError('JSON required')
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 65536:
+                    raise ValueError('Invalid size')
+                self.respond(202, service.submit(json.loads(self.rfile.read(size))))
+            else:
+                self.respond(404, {'code': 'unknown_endpoint', 'message': 'Unknown handoff endpoint.'})
+        except Failure as error:
+            self.respond(404 if error.code == 'unknown_request' else 409,
+                         {'code': error.code, 'message': error.message})
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            self.respond(400, {'code': 'invalid_request', 'message': 'Invalid handoff request or account configuration.'})
+
 
 if __name__ == '__main__':
     from orcaslicer_nextcloud_sync import Sync
+    from orcaslicer_handoff import Handoff
+    from orcaslicer_solidcraft import Sources
     server = ThreadingHTTPServer(('127.0.0.1', 8093), Handler)
+    server.solidcraft = Sources()
     server.login = Login()
+    server.login.handoff = Handoff(server.login)
     server.login.sync = Sync(server.login)
     server.login.sync.thread.start()
     def terminate(*_):

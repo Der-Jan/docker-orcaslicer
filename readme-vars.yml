@@ -51,7 +51,7 @@ app_setup_block: |
 
   Open **Plugins** in OrcaSlicer's main menu and enable **Support Fins**. Then switch process settings to **Advanced**, open **Others > Slicing Pipeline Plugin > Add plugin**, and choose **Support Fins**. Approve OrcaSlicer's permission prompts when you first slice. Parts with **Enable support** turned on are skipped; turn it off for parts that should receive fins. Fins are generated during slicing and appear in Preview, rather than as added objects in Prepare.
 
-  `ORCASLICER_VERSION` defaults to the latest official stable upstream release. Set it to a release tag such as `v2.5.0` to select a specific version, or `nightly-builds` to opt into nightly builds. `SUPPORT_FINS_VERSION` can select a plugin commit or tag; unset, the build records the current `main` commit in `/usr/local/share/orcaslicer/plugins/SupportFins/VERSION`. Rebuild the image to fetch newer Orca/plugin code. Image-provided plugin code and packages update with the image; activation and configuration remain in the data volume.
+  `ORCASLICER_VERSION` defaults to the latest official stable upstream release. Set it to a release tag such as `v2.5.0` to select a specific version, or `nightly-builds` to opt into nightly builds. `SUPPORT_FINS_VERSION` can select a plugin commit or tag; unset, the build records the current `main` commit in `/usr/local/share/orcaslicer/plugins/SupportFins/VERSION`. Rebuild the image to fetch newer Orca/plugin code. The build uses a full Git checkout so upstream can stamp its per-plugin version correctly. Image-provided plugin code and packages update with the image; activation and configuration remain in the data volume.
 
   #### Device panel
 
@@ -80,6 +80,18 @@ app_setup_block: |
   Choose a dedicated Nextcloud subfolder and click **Start syncing** to enable rclone bisync with `/config/Projects`, including `Sources`. After selection, the panel shows only the chosen path. Use **Change folder** to reopen the folder browser; stop syncing before changing the selected folder. It runs every 30 seconds, supports uploads, downloads and deletions on either side, and preserves simultaneous edits with local/cloud conflict filenames. The first run merges both directories; remote files replaced during that merge are moved into `.orcaslicer-sync-history/` at the Nextcloud account root. Subsequent runs use persistent comparison state under `/data/orcaslicer/nextcloud/bisync/`. There are no additional staging copies or application upload queue; rclone uses its normal temporary files for safe downloads. Files without server-side hashes are streamed for checksum calculation when needed. Temporary `.part`, `.partial`, `.tmp`, and `.new` files are excluded. Do not remove `.orcaslicer-sync-check` from either folder; it guards access and permits syncing otherwise empty folders. Connection failures retry, while critical errors remain visible rather than automatically resetting the comparison state. Private logs are `bisync/<session>/sync.log`.
 
   Automatic synchronization pauses while a saved Orca project is open; close it or open a new project to resume. **Sync now** permits an open project for one immediate run and blocks desktop input and file drops in the panel's browser desktop until the run finishes or stops. Other panel tabs observe the lock through status polling; direct Selkies connections are outside this input lock. Both automatic and manual runs wait while Orca is loading, saving or slicing, or its Project-storage status is unavailable. Only saved files are synced. Unsaved editor changes are not uploaded, and downloaded project changes are not automatically reloaded into Orca. **Stop syncing** persists the stopped state; enabled synchronization and its last successful time survive restarts. Stop synchronization before changing the remote folder. The Nextcloud file/3D browser is not implemented yet.
+
+  Sync failures show a detailed, credential-redacted reason and timestamp. The last failure stays visible while syncing waits, stops or retries, including across browser and service restarts. A successful sync clears it. The toolbar LED remains red while an unresolved failure is waiting, and blinks during an active retry.
+
+  #### SolidCraft cloud handoff
+
+  SolidCraft can store designs and sources directly in Nextcloud and request a versioned handoff at `printer-panel/nextcloud/handoff/requests`. The server-side handoff caller must authenticate with the separate bearer token in `/data/orcaslicer/handoff/token`; never send this token to the browser or put it in a design. The token is generated once and persists with the data volume. A dedicated private `/data/orcaslicer/handoff/account.json` can provision the Nextcloud account independently; otherwise the existing Nextcloud login is used during transition. The account endpoint returns only a non-secret deployment/account reference and allowed root.
+
+  SolidCraft cloud Open/Save and account sessions remain the standard Craft/CollabCraft implementation; this endpoint adds no parallel cloud client or save protocol. Each immutable request identifies the chosen project, stable design ID, exact source paths and provider ETags or exported-source checksums. Orca downloads and verifies those versions before opening the linked 3MF or preparing a project with the selected print settings. Existing local files are adopted only when identical; conflicting local or cloud changes are retained and reported. Request IDs are deduplicated across restarts; after a timeout, query the existing request instead of repeating an import under another ID. Unsaved work is protected and an English message in Orca explains how to continue.
+
+  Explicitly linked folders are excluded from legacy bisync, without moving existing data. In linked folders Orca uploads only `.3mf` files using conditional writes; it never uploads or deletes SolidCraft designs, sources or inputs. Sources download on handoff. Legacy projects retain their existing sync behavior, and the legacy SolidCraft converter remains untouched. The existing **Start syncing** setting enables periodic 3MF uploads as well; named open projects still pause automatic sync. There is no automatic migration or guessed project association.
+
+  The official plugin API does not support safe geometry replacement or normal project Save. Refresh handoffs therefore download and verify linked sources, then return `unsupported_refresh` and ask you to use Orca's **Reload from disk**. No duplicate objects are imported. First-open fallback imports still require **Save Project As**, and a successful open does not acknowledge a 3MF save. See [handoff API and deployment details](tools/printer-panel/nextcloud-handoff.md).
 
   The Nextcloud panel button shows a status LED even when the panel is closed: red for no saved connection, a sync error or unavailable status; green for a connected account without a reported error; blinking green during a sync request or run. The tooltip provides the status in text. Green also applies when syncing is stopped or waiting; it does not perform a separate connectivity check. With reduced motion enabled, the LED stays steady.
 
@@ -171,13 +183,18 @@ init_diagram: |
   "orcaslicer:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "16.11.26:", desc: "Update the deployed stable OrcaSlicer version to 2.5.1."}
+  - {date: "15.11.26:", desc: "Show detailed sync errors and retain the last failure until a successful sync."}
   - {date: "13.11.26:", desc: "Replace vertical panel tabs with a collapsible horizontal toolbar and persistent pin preference."}
+  - {date: "09.11.26:", desc: "Add a SolidCraft sources plugin action to open original cloud models in the browser."}
   - {date: "08.11.26:", desc: "Group the Device and Nextcloud tabs directly below Restore Orca."}
   - {date: "08.11.26:", desc: "Restore existing Orca windows or relaunch an exited application from the browser."}
   - {date: "08.11.26:", desc: "Collapse the Nextcloud folder browser after selection to keep sync controls accessible."}
   - {date: "08.11.26:", desc: "Version panel assets by content to prevent stale scripts leaving desktop input blocked after upgrades."}
   - {date: "07.11.26:", desc: "Use official stable OrcaSlicer AppImages by default and retain optional nightly builds."}
   - {date: "07.11.26:", desc: "Allow manual Nextcloud sync with open projects and block browser desktop input during the run."}
+  - {date: "31.10.26:", desc: "Build current Support Fins with full Git history for upstream plugin version stamps."}
+  - {date: "27.10.26:", desc: "Add authenticated Nextcloud handoffs with version checks, persistent request status and separate CAD/3MF ownership."}
   - {date: "22.10.26:", desc: "Fall back to preserved source imports when project creation fails, including unsupported STEP files."}
   - {date: "19.10.26:", desc: "Persist the machine identity to preserve OrcaCloud login across base image updates."}
   - {date: "15.10.26:", desc: "Initialize bundled NumPy submodules before Support Fins enters the slicing sandbox."}

@@ -3,7 +3,7 @@
 # [tool.orcaslicer.plugin]
 # name = "Project storage"
 # description = "Associate browser uploads with the open OrcaSlicer project."
-# version = "1.1.0"
+# version = "1.2.0"
 # ///
 import json
 import fcntl
@@ -82,6 +82,8 @@ class Storage(orca.script.ScriptPluginCapabilityBase):
             'busy': plater.inside_snapshot_capture(),
             'objects': model.object_count(),
             'sources': [obj.input_file for obj in model.objects()],
+            'source_objects': [{'id': obj.id(), 'name': obj.name, 'source': obj.input_file}
+                               for obj in model.objects()],
         }
 
     def tick(self, message):
@@ -134,7 +136,76 @@ class Storage(orca.script.ScriptPluginCapabilityBase):
             self.panel.post(str(error))
 
 
+SOURCE_PAGE = '''<style>body{font:13px system-ui;margin:12px}button{margin:4px 0 12px}p{overflow-wrap:anywhere}small{display:block}</style>
+<p id="status">Waiting for source references. Keep the Orca browser tab open.</p><div id="sources"></div>
+<script>
+let signature;
+orca.onMessage(data => {
+  const next = JSON.stringify(data);
+  if (signature === next) return;
+  signature = next;
+  document.getElementById('status').textContent = data.message;
+  const list = document.getElementById('sources'); list.replaceChildren();
+  for (const source of data.links || []) {
+    const label = document.createElement('p'); label.textContent = source.object_name;
+    const detail = document.createElement('small'); detail.textContent = source.name + ' · ' + source.service;
+    label.append(detail); list.append(label);
+    const button = document.createElement('button'); button.textContent = 'Edit in SolidCraft…';
+    button.onclick = () => {
+      orca.postMessage({key:source.key, object_id:source.object_id});
+      document.getElementById('status').textContent = 'Use the link shown in your browser to open the original model.';
+    };
+    list.append(button);
+  }
+});
+setInterval(() => orca.postMessage({tick:true}), 1000);
+orca.postMessage({tick:true});
+</script>'''
+
+
+class SolidCraftSources(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return 'SolidCraft sources'
+
+    def on_load(self):
+        self.panel = None
+
+    def execute(self):
+        if self.panel is None or not self.panel.is_open():
+            self.panel = orca.host.ui.create_dock_panel(
+                html=SOURCE_PAGE, title='SolidCraft sources', width=360, height=240,
+                dock='bottom', on_message=self.tick)
+        self.panel.show()
+        return orca.ExecutionResult.success()
+
+    def tick(self, message):
+        links = []
+        for slot in range(8):
+            directory = ROOT / str(slot)
+            try:
+                state = json.loads((directory / 'state.json').read_text())
+                if state.get('pid') != os.getpid() or time.time() - state.get('time', 0) > 3:
+                    continue
+                data = json.loads((directory / 'solidcraft.json').read_text())
+                if data.get('session') != state['session'] or time.time() - data.get('time', 0) > 5:
+                    continue
+                links = data['links']
+                if not message.get('tick'):
+                    found = next((link for link in links if link['key'] == message.get('key')
+                                  and link['object_id'] == message.get('object_id')), None)
+                    if found:
+                        write_json(directory / 'solidcraft-request.json', {
+                            'session': state['session'], 'time': time.time(), 'nonce': uuid.uuid4().hex,
+                            'key': found['key'], 'object_id': found['object_id']})
+                break
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+        self.panel.post({'links': links, 'message': 'Choose the model to edit. The link opens in your browser.' if links else
+                         'No linked SolidCraft models found. Keep the SCREF1 .scsource manifest with the source files in Projects.'})
+
+
 @orca.plugin
 class Package(orca.base):
     def register_capabilities(self):
         orca.register_capability(Storage)
+        orca.register_capability(SolidCraftSources)

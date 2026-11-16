@@ -35,6 +35,25 @@ if [[ ! -e "${plugin_root}/ProjectStorage/.install_state.json" ]]; then
     s6-setuidgid abc cp /defaults/project-storage/.install_state.json \
         "${plugin_root}/ProjectStorage/.install_state.json" || exit 1
 fi
+# add permissions for private source-link messages on existing installations
+if ! s6-setuidgid abc python3 - <<'PY'
+import json
+from pathlib import Path
+target = Path('/data/orcaslicer/orca_plugins/ProjectStorage/.install_state.json')
+current = json.loads(target.read_text())
+defaults = json.loads(Path('/defaults/project-storage/.install_state.json').read_text())
+for permission in ('fs_read', 'fs_readwrite'):
+    entries = current.setdefault('permissions', {}).setdefault(permission, [])
+    for path in defaults['permissions'][permission]:
+        if '/solidcraft' in path and path not in entries:
+            entries.append(path)
+part = target.with_suffix('.part')
+part.write_text(json.dumps(current, indent=2) + '\n')
+part.replace(target)
+PY
+then
+    exit 1
+fi
 
 abi=$(cat "${image_root}/python/ABI")
 packages="/data/orcaslicer/python/packages/${abi}"

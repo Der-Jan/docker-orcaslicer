@@ -65,7 +65,46 @@ saved printer-profile change. Do not click printer controls during UI checks.
 Local browser tooling, test configuration, logs and screenshots are ignored
 under this directory rather than stored in `/tmp`.
 
+## Edit a SolidCraft source
+
+Run **SolidCraft sources** from Orca's Plugins actions (or its Speed Dial).
+The dock lists linked objects from the active project. **Edit in SolidCraft…**
+offers a link at the bottom left of the browser; click that link to open the
+original cloud design in your outer browser. This extra click is necessary
+because a click inside the streamed desktop cannot directly open a browser tab.
+The destination service is displayed before opening. SolidCraft validates the
+signed-in account and resolves the normal cloud origin, preserving ordinary Save.
+
+Keep the producer's `SCREF1-<key>.scsource` manifest in the source directory or
+somewhere under `/config/Projects` (for example through the existing sync).
+Desktop STL uploads retain their header when copied into `Projects/Sources`.
+The consumer validates the binary STL and recomputes the manifest's identity;
+it builds the return URL itself and never fetches a manifest-supplied URL.
+No new cloud credentials or background cloud requests are involved.
+
+This first consumer supports object-level binary STL references. STEP has no
+SCREF1 header; independently linked parts in a combined multipart object require
+a future native association API. Previously resolved references are cached in
+`/data/orcaslicer/solidcraft/sources.json`, keyed by the exact source path, so
+embedded models can retain the return link if their original file is temporarily
+missing. Relative source references in a saved project are resolved against its
+folder and associated `Sources`/`Quellen` paths, with SCREF1 confirming identity;
+ambiguous different source keys are refused. This cache is local to the
+installation and is not portable 3MF metadata.
+Moving a source and its manifest together allows resolving it again.
+
+The stock Orca plugin API does not expose custom object context menus or safe
+geometry replacement. Sending another mesh does not yet automatically update an
+object. The [roundtrip concept](solidcraft-source-roundtrip-concept.md) describes
+those later native changes. Existing object settings and geometry are untouched
+by this return-link action.
+
 ## Nextcloud account connection
+
+The [native CollabCraft storage concept](orcaslicer-collabcraft-native-concept.md)
+describes the proposed replacement for this container-side connection and sync.
+It includes project naming without a 3MF, cloud folder selection on the first
+model drop and native Open/Save. It is not implemented by the panel below.
 
 The **Panels → Nextcloud** action opens a native panel for Login Flow v2,
 without embedding Nextcloud. Enter the server's HTTPS base URL and approve the

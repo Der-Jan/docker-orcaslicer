@@ -80,8 +80,8 @@
     if (locked && document.activeElement === document.getElementById('desktop-frame')) editorLockStop.focus();
     const phase = sync.phase || (sync.enabled ? 'checking' : 'disabled');
     if (!connected) tabStatus('error', 'Not connected');
-    else if (phase === 'error') tabStatus('error', sync.message || 'Sync error');
     else if (['requested', 'preparing', 'checking', 'transferring', 'stopping'].includes(phase)) tabStatus('syncing', sync.message || 'Syncing');
+    else if (phase === 'error' || sync.last_error) tabStatus('error', sync.last_error?.message || sync.message || 'Sync error');
     else tabStatus('ready', phase === 'waiting' ? sync.message || 'Waiting' : sync.enabled ? 'Up to date' : 'Connected. Sync is off');
     const labels = {disabled: 'Off', requested: 'Requested', preparing: 'Preparing first sync', checking: 'Checking for changes', transferring: 'Transferring files', waiting: 'Waiting', idle: 'Up to date', error: 'Error', stopping: 'Stopping'};
     syncActivity.dataset.phase = phase;
@@ -89,6 +89,10 @@
     document.getElementById('nextcloud-sync-status').textContent = (sync.message || 'Sync is off.') +
       (sync.last_success ? ` Last successful sync: ${new Date(sync.last_success * 1000).toLocaleString('en-GB')}.` : '');
     const stats = sync.progress || {};
+    const lastError = document.getElementById('nextcloud-sync-error');
+    lastError.hidden = !sync.last_error;
+    lastError.textContent = sync.last_error
+      ? `Last sync failure (${new Date(sync.last_error.time * 1000).toLocaleString('en-GB')}): ${sync.last_error.message}` : '';
     syncProgress.hidden = !['requested', 'preparing', 'checking', 'transferring'].includes(phase);
     if (phase === 'transferring' && stats.totalBytes > 0) {
       syncProgress.value = Math.min(100, 100 * (stats.bytes || 0) / stats.totalBytes);

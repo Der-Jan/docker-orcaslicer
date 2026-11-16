@@ -29,6 +29,13 @@
     </button>
   </nav>
   <p id="orca-restore-status" role="status" aria-live="polite" hidden></p>
+  <section id="solidcraft-return" role="region" aria-label="Edit original model" hidden>
+    <strong id="solidcraft-model"></strong>
+    <p id="solidcraft-origin"></p>
+    <p id="solidcraft-snapshot" hidden>The mesh includes unsaved CAD changes. The saved original may be older.</p>
+    <a id="solidcraft-edit" target="solidcraft-source" rel="noopener noreferrer">Edit in SolidCraft…</a>
+    <button id="solidcraft-dismiss" aria-label="Dismiss SolidCraft link">Dismiss</button>
+  </section>
   <main id="workspace" aria-label="OrcaSlicer" inert>
     <iframe id="desktop-frame" title="OrcaSlicer Desktop" src="../desktop.html" allow="clipboard-read; clipboard-write; fullscreen; autoplay; gamepad"></iframe>
   </main>
@@ -91,12 +98,14 @@
         <p>Projects ↔ selected Nextcloud folder. Changes and deletions sync both ways.</p>
         <div id="nextcloud-sync-activity" data-phase="disabled"><span id="nextcloud-sync-indicator" aria-hidden="true"></span><strong id="nextcloud-sync-phase">Off</strong></div>
         <p id="nextcloud-sync-status" role="status"></p>
+        <p id="nextcloud-sync-error" role="alert" hidden></p>
         <progress id="nextcloud-sync-progress" max="100" aria-label="Sync transfer progress" hidden></progress>
         <p id="nextcloud-sync-details" class="nextcloud-note"></p>
         <button id="nextcloud-sync-start">Start syncing</button>
         <button id="nextcloud-sync-stop" hidden>Stop syncing</button>
-        <button id="nextcloud-sync-now" title="Run the two-way sync now instead of waiting for the next automatic check" hidden>Sync now</button>
+        <button id="nextcloud-sync-now" title="Check project files now instead of waiting for the next automatic check" hidden>Sync now</button>
         <p class="nextcloud-note">Automatic checks run every 30 seconds and wait for open projects to close. Sync now also works with an open project and pauses desktop input during the run. Only saved files are synced; downloaded changes are not automatically reloaded.</p>
+        <p class="nextcloud-note">Linked SolidCraft projects upload only 3MF files. CAD sources download when SolidCraft sends a project to Orca; designs and inputs stay under SolidCraft's control.</p>
       </section>
       <p class="nextcloud-note">Your connection, folder selection and sync setting are kept across restarts.</p>
     </div>
@@ -105,5 +114,6 @@
   <script src="panel.js"></script>
   <script src="nextcloud.js"></script>
   <script src="restore.js"></script>
+  <script src="solidcraft.js"></script>
 </body>
 </html>
